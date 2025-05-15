@@ -1,0 +1,154 @@
+2025-05-15 20:10:30,201 - INFO - MainThread - === Boss Zhipin区域数据抓取脚本启动 ===
+2025-05-15 20:10:30,201 - WARNING - MainThread - 重要提示: 请确保配置文件中的 COOKIES 和 BASE_HEADERS 是最新的，否则请求很可能会失败。
+2025-05-15 20:10:30,201 - WARNING - MainThread - 临时数据文件将尝试从 './zhipin_crawler_output/temp_crawled_data.json' 加载/保存。
+2025-05-15 20:10:30,202 - WARNING - MainThread - 如果临时数据文件超过 6 小时，将强制重新爬取。
+2025-05-15 20:10:30,202 - INFO - MainThread - --- 步骤 1: 获取城市列表 ---
+2025-05-15 20:10:30,202 - INFO - MainThread - Attempting to fetch city list...
+2025-05-15 20:10:30,751 - INFO - MainThread - 共提取 373 个城市信息，已保存到 ./zhipin_crawler_output/city_codes.csv
+2025-05-15 20:10:30,752 - INFO - MainThread - 成功获取 373 个城市的基础信息。
+2025-05-15 20:10:30,752 - INFO - MainThread - --- 步骤 2: 批量获取 373 个城市的商圈数据 ---
+2025-05-15 20:10:32,979 - INFO - DistrictFetcher_0 - 铁门关(101132000) - API响应成功但无商圈数据. Response: {'code': 0, 'message': 'Success', 'zpData': {'businessDistrict': None}}
+2025-05-15 20:10:33,073 - INFO - DistrictFetcher_1 - 新星市(101132500) - API响应成功但无商圈数据. Response: {'code': 0, 'message': 'Success', 'zpData': {'businessDistrict': None}}
+2025-05-15 20:10:33,074 - INFO - DistrictFetcher_2 - 胡杨河市(101132600) - API响应成功但无商圈数据. Response: {'code': 0, 'message': 'Success', 'zpData': {'businessDistrict': None}}
+2025-05-15 20:10:33,076 - INFO - DistrictFetcher_0 - 白杨市(101132700) - API响应成功但无商圈数据. Response: {'code': 0, 'message': 'Success', 'zpData': {'businessDistrict': None}}
+2025-05-15 20:10:36,898 - INFO - DistrictFetcher_0 - 东沙群岛(101282200) - API响应成功但无商圈数据. Response: {'code': 0, 'message': 'Success', 'zpData': {'businessDistrict': None}}
+2025-05-15 20:10:37,548 - INFO - DistrictFetcher_0 - 三沙(101310300) - API响应成功但无商圈数据. Response: {'code': 0, 'message': 'Success', 'zpData': {'businessDistrict': None}}
+2025-05-15 20:10:37,549 - INFO - DistrictFetcher_2 - 儋州(101310400) - API响应成功但无商圈数据. Response: {'code': 0, 'message': 'Success', 'zpData': {'businessDistrict': None}}
+2025-05-15 20:10:37,686 - INFO - DistrictFetcher_1 - 东方(101310900) - API响应成功但无商圈数据. Response: {'code': 0, 'message': 'Success', 'zpData': {'businessDistrict': None}}
+2025-05-15 20:10:37,687 - INFO - DistrictFetcher_0 - 定安(101311000) - API响应成功但无商圈数据. Response: {'code': 0, 'message': 'Success', 'zpData': {'businessDistrict': None}}
+2025-05-15 20:10:37,744 - INFO - DistrictFetcher_1 - 澄迈(101311200) - API响应成功但无商圈数据. Response: {'code': 0, 'message': 'Success', 'zpData': {'businessDistrict': None}}
+2025-05-15 20:10:37,746 - INFO - DistrictFetcher_2 - 白沙黎族自治县(101311400) - API响应成功但无商圈数据. Response: {'code': 0, 'message': 'Success', 'zpData': {'businessDistrict': None}}
+2025-05-15 20:10:37,806 - INFO - DistrictFetcher_1 - 昌江黎族自治县(101311500) - API响应成功但无商圈数据. Response: {'code': 0, 'message': 'Success', 'zpData': {'businessDistrict': None}}
+2025-05-15 20:10:37,808 - INFO - DistrictFetcher_2 - 陵水黎族自治县(101311700) - API响应成功但无商圈数据. Response: {'code': 0, 'message': 'Success', 'zpData': {'businessDistrict': None}}
+2025-05-15 20:10:37,859 - INFO - DistrictFetcher_0 - 保亭黎族苗族自治县(101311800) - API响应成功但无商圈数据. Response: {'code': 0, 'message': 'Success', 'zpData': {'businessDistrict': None}}
+2025-05-15 20:10:37,931 - INFO - DistrictFetcher_2 - 台湾(101341100) - API响应成功但无商圈数据. Response: {'code': 0, 'message': 'Success', 'zpData': {'businessDistrict': None}}
+2025-05-15 20:21:53,530 - INFO - MainThread - 原始爬取数据已成功保存到临时文件: ./zhipin_crawler_output/temp_crawled_data.json
+2025-05-15 20:21:53,530 - INFO - MainThread - --- 步骤 3: 将原始商圈数据保存到永久文件和数据库的json_storage表 ---
+2025-05-15 20:21:53,606 - INFO - MainThread - 所有城市的原始商圈数据已保存到永久文件: ./zhipin_crawler_output/business_districts_all.json
+2025-05-15 20:21:53,711 - INFO - MainThread - 商圈原始JSON数据已成功保存/更新到数据库 city_json_storage 表。
+2025-05-15 20:21:53,712 - INFO - MainThread - 数据统计：成功获取商圈数据城市数: 358。无数据城市数: 15。
+2025-05-15 20:21:53,712 - INFO - MainThread - --- 步骤 4: 处理数据并插入到 region 表 ---
+2025-05-15 20:21:53,714 - INFO - MainThread - 城市 铁门关 (101132000) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:21:53,715 - INFO - MainThread - 城市 新星市 (101132500) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:21:53,715 - INFO - MainThread - 城市 胡杨河市 (101132600) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:21:53,715 - INFO - MainThread - 城市 白杨市 (101132700) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:21:53,719 - INFO - MainThread - 城市 东沙群岛 (101282200) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:21:53,719 - INFO - MainThread - 城市 三沙 (101310300) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:21:53,719 - INFO - MainThread - 城市 儋州 (101310400) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:21:53,719 - INFO - MainThread - 城市 东方 (101310900) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:21:53,719 - INFO - MainThread - 城市 定安 (101311000) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:21:53,719 - INFO - MainThread - 城市 澄迈 (101311200) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:21:53,719 - INFO - MainThread - 城市 白沙黎族自治县 (101311400) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:21:53,719 - INFO - MainThread - 城市 昌江黎族自治县 (101311500) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:21:53,719 - INFO - MainThread - 城市 陵水黎族自治县 (101311700) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:21:53,719 - INFO - MainThread - 城市 保亭黎族苗族自治县 (101311800) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:21:53,719 - INFO - MainThread - 城市 台湾 (101341100) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:21:53,721 - INFO - MainThread - 准备清空并重新插入数据到 region 表...
+2025-05-15 20:21:53,748 - INFO - MainThread - region 表已清空。
+2025-05-15 20:21:53,757 - INFO - MainThread - 已插入 373 条市级数据 (level 1)。
+2025-05-15 20:21:53,836 - INFO - MainThread - 已插入 2898 条区级数据 (level 2)。
+2025-05-15 20:21:54,053 - INFO - MainThread - 已插入 9021 条街道/商圈级数据 (level 3)。
+2025-05-15 20:21:54,057 - INFO - MainThread - 所有数据已成功插入到 region 表。共插入 12292 条记录。
+2025-05-15 20:21:54,058 - INFO - MainThread - === 数据处理全部完成！脚本执行成功。 ===
+2025-05-15 20:22:54,502 - INFO - MainThread - === Boss Zhipin区域数据抓取脚本启动 ===
+2025-05-15 20:22:54,503 - WARNING - MainThread - 重要提示: 请确保配置文件中的 COOKIES 和 BASE_HEADERS 是最新的，否则请求很可能会失败。
+2025-05-15 20:22:54,503 - WARNING - MainThread - 临时数据文件将尝试从 './zhipin_crawler_output/temp_crawled_data.json' 加载/保存。
+2025-05-15 20:22:54,503 - WARNING - MainThread - 如果临时数据文件超过 6 小时，将强制重新爬取。
+2025-05-15 20:22:54,503 - INFO - MainThread - 发现有效的临时数据文件 (修改于 2025-05-15 20:21:53.530939), 尝试从中加载数据...
+2025-05-15 20:22:54,517 - INFO - MainThread - 从临时文件 ./zhipin_crawler_output/temp_crawled_data.json 加载原始数据成功。
+2025-05-15 20:22:54,517 - INFO - MainThread - 成功从临时文件加载数据，将跳过爬虫步骤。
+2025-05-15 20:22:54,518 - INFO - MainThread - --- 步骤 3: 将原始商圈数据保存到永久文件和数据库的json_storage表 ---
+2025-05-15 20:22:54,594 - INFO - MainThread - 所有城市的原始商圈数据已保存到永久文件: ./zhipin_crawler_output/business_districts_all.json
+2025-05-15 20:22:54,712 - INFO - MainThread - 商圈原始JSON数据已成功保存/更新到数据库 city_json_storage 表。
+2025-05-15 20:22:54,713 - INFO - MainThread - 数据统计：成功获取商圈数据城市数: 358。无数据城市数: 15。
+2025-05-15 20:22:54,713 - INFO - MainThread - --- 步骤 4: 处理数据并插入到 region 表 ---
+2025-05-15 20:22:54,715 - INFO - MainThread - 城市 铁门关 (101132000) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:22:54,715 - INFO - MainThread - 城市 新星市 (101132500) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:22:54,715 - INFO - MainThread - 城市 胡杨河市 (101132600) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:22:54,715 - INFO - MainThread - 城市 白杨市 (101132700) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:22:54,719 - INFO - MainThread - 城市 东沙群岛 (101282200) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:22:54,719 - INFO - MainThread - 城市 三沙 (101310300) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:22:54,719 - INFO - MainThread - 城市 儋州 (101310400) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:22:54,719 - INFO - MainThread - 城市 东方 (101310900) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:22:54,719 - INFO - MainThread - 城市 定安 (101311000) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:22:54,719 - INFO - MainThread - 城市 澄迈 (101311200) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:22:54,719 - INFO - MainThread - 城市 白沙黎族自治县 (101311400) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:22:54,719 - INFO - MainThread - 城市 昌江黎族自治县 (101311500) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:22:54,719 - INFO - MainThread - 城市 陵水黎族自治县 (101311700) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:22:54,719 - INFO - MainThread - 城市 保亭黎族苗族自治县 (101311800) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:22:54,720 - INFO - MainThread - 城市 台湾 (101341100) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:22:54,722 - INFO - MainThread - 准备清空并重新插入数据到 region 表...
+2025-05-15 20:22:54,754 - INFO - MainThread - region 表已清空。
+2025-05-15 20:22:54,763 - INFO - MainThread - 已插入 373 条市级数据 (level 1)。
+2025-05-15 20:22:54,837 - INFO - MainThread - 已插入 2898 条区级数据 (level 2)。
+2025-05-15 20:22:55,032 - INFO - MainThread - 已插入 9021 条街道/商圈级数据 (level 3)。
+2025-05-15 20:22:55,035 - INFO - MainThread - 所有数据已成功插入到 region 表。共插入 12292 条记录。
+2025-05-15 20:22:55,037 - INFO - MainThread - === 数据处理全部完成！脚本执行成功。 ===
+2025-05-15 20:29:05,334 - INFO - MainThread - === Boss Zhipin区域数据抓取脚本启动 ===
+2025-05-15 20:29:05,334 - WARNING - MainThread - 重要提示: 请确保配置文件中的 COOKIES 和 BASE_HEADERS 是最新的，否则请求很可能会失败。
+2025-05-15 20:29:05,334 - WARNING - MainThread - 临时数据文件将尝试从 './zhipin_crawler_output/temp_crawled_data.json' 加载/保存。
+2025-05-15 20:29:05,334 - WARNING - MainThread - 如果临时数据文件超过 6 小时，将强制重新爬取。
+2025-05-15 20:29:05,334 - INFO - MainThread - 发现有效的临时数据文件 (修改于 2025-05-15 20:21:53.530939), 尝试从中加载数据...
+2025-05-15 20:29:05,349 - INFO - MainThread - 从临时文件 ./zhipin_crawler_output/temp_crawled_data.json 加载原始数据成功。
+2025-05-15 20:29:05,349 - INFO - MainThread - 成功从临时文件加载数据，将跳过爬虫步骤。
+2025-05-15 20:29:05,349 - INFO - MainThread - --- 步骤 3: 将原始商圈数据保存到永久文件和数据库的json_storage表 ---
+2025-05-15 20:29:05,427 - INFO - MainThread - 所有城市的原始商圈数据已保存到永久文件: ./zhipin_crawler_output/business_districts_all.json
+2025-05-15 20:29:05,451 - INFO - MainThread - 数据库中的商圈原始JSON数据未发生变化，无需更新。
+2025-05-15 20:29:05,451 - INFO - MainThread - 数据统计：成功获取商圈数据城市数: 358。无数据城市数: 15。
+2025-05-15 20:29:05,451 - INFO - MainThread - --- 步骤 4: 处理数据并插入到 region 表 ---
+2025-05-15 20:29:05,454 - INFO - MainThread - 城市 铁门关 (101132000) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:29:05,454 - INFO - MainThread - 城市 新星市 (101132500) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:29:05,454 - INFO - MainThread - 城市 胡杨河市 (101132600) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:29:05,454 - INFO - MainThread - 城市 白杨市 (101132700) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:29:05,458 - INFO - MainThread - 城市 东沙群岛 (101282200) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:29:05,458 - INFO - MainThread - 城市 三沙 (101310300) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:29:05,458 - INFO - MainThread - 城市 儋州 (101310400) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:29:05,458 - INFO - MainThread - 城市 东方 (101310900) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:29:05,458 - INFO - MainThread - 城市 定安 (101311000) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:29:05,458 - INFO - MainThread - 城市 澄迈 (101311200) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:29:05,458 - INFO - MainThread - 城市 白沙黎族自治县 (101311400) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:29:05,459 - INFO - MainThread - 城市 昌江黎族自治县 (101311500) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:29:05,459 - INFO - MainThread - 城市 陵水黎族自治县 (101311700) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:29:05,459 - INFO - MainThread - 城市 保亭黎族苗族自治县 (101311800) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:29:05,459 - INFO - MainThread - 城市 台湾 (101341100) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:29:05,461 - INFO - MainThread - 准备清空并重新插入数据到 region 表...
+2025-05-15 20:29:05,489 - INFO - MainThread - region 表已清空。
+2025-05-15 20:29:05,499 - INFO - MainThread - 已插入 373 条市级数据 (level 1)。
+2025-05-15 20:29:05,578 - INFO - MainThread - 已插入 2898 条区级数据 (level 2)。
+2025-05-15 20:29:05,772 - INFO - MainThread - 已插入 9021 条街道/商圈级数据 (level 3)。
+2025-05-15 20:29:05,775 - INFO - MainThread - 所有数据已成功插入到 region 表。共插入 12292 条记录。
+2025-05-15 20:29:05,776 - INFO - MainThread - === 数据处理全部完成！脚本执行成功。 ===
+2025-05-15 20:37:53,761 - INFO - MainThread - === Boss Zhipin区域数据抓取脚本启动 ===
+2025-05-15 20:37:53,761 - WARNING - MainThread - 重要提示: 请确保配置文件中的 COOKIES 和 BASE_HEADERS 是最新的，否则请求很可能会失败。
+2025-05-15 20:37:53,761 - WARNING - MainThread - 临时数据文件将尝试从 './zhipin_crawler_output/temp_crawled_data.json' 加载/保存。
+2025-05-15 20:37:53,762 - WARNING - MainThread - 如果临时数据文件超过 6 小时，将强制重新爬取。
+2025-05-15 20:37:53,762 - INFO - MainThread - 发现有效的临时数据文件 (修改于 2025-05-15 20:21:53.530939), 尝试从中加载数据...
+2025-05-15 20:37:53,778 - INFO - MainThread - 从临时文件 ./zhipin_crawler_output/temp_crawled_data.json 加载原始数据成功。
+2025-05-15 20:37:53,778 - INFO - MainThread - 成功从临时文件加载数据，将跳过爬虫步骤。
+2025-05-15 20:37:53,778 - INFO - MainThread - --- 步骤 3: 将原始商圈数据保存到永久文件和数据库的json_storage表 ---
+2025-05-15 20:37:53,858 - INFO - MainThread - 所有城市的原始商圈数据已保存到永久文件: ./zhipin_crawler_output/business_districts_all.json
+2025-05-15 20:37:53,896 - INFO - MainThread - 数据库中的商圈原始JSON数据未发生变化，无需更新。
+2025-05-15 20:37:53,896 - INFO - MainThread - 数据统计：成功获取商圈数据城市数: 358。无数据城市数: 15。
+2025-05-15 20:37:53,897 - INFO - MainThread - --- 步骤 4: 处理数据并插入到 region 表 ---
+2025-05-15 20:37:53,899 - INFO - MainThread - 城市 铁门关 (101132000) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:37:53,899 - INFO - MainThread - 城市 新星市 (101132500) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:37:53,899 - INFO - MainThread - 城市 胡杨河市 (101132600) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:37:53,899 - INFO - MainThread - 城市 白杨市 (101132700) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:37:53,903 - INFO - MainThread - 城市 东沙群岛 (101282200) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:37:53,904 - INFO - MainThread - 城市 三沙 (101310300) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:37:53,904 - INFO - MainThread - 城市 儋州 (101310400) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:37:53,904 - INFO - MainThread - 城市 东方 (101310900) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:37:53,904 - INFO - MainThread - 城市 定安 (101311000) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:37:53,904 - INFO - MainThread - 城市 澄迈 (101311200) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:37:53,904 - INFO - MainThread - 城市 白沙黎族自治县 (101311400) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:37:53,904 - INFO - MainThread - 城市 昌江黎族自治县 (101311500) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:37:53,904 - INFO - MainThread - 城市 陵水黎族自治县 (101311700) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:37:53,904 - INFO - MainThread - 城市 保亭黎族苗族自治县 (101311800) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:37:53,904 - INFO - MainThread - 城市 台湾 (101341100) 无商圈数据，仅作为市级数据插入。
+2025-05-15 20:37:53,906 - INFO - MainThread - 准备清空并重新插入数据到 region 表...
+2025-05-15 20:37:53,944 - INFO - MainThread - region 表已清空。
+2025-05-15 20:37:53,953 - INFO - MainThread - 已插入 373 条市级数据 (level 1)。
+2025-05-15 20:37:54,039 - INFO - MainThread - 已插入 2898 条区级数据 (level 2)。
+2025-05-15 20:37:54,234 - INFO - MainThread - 已插入 9021 条街道/商圈级数据 (level 3)。
+2025-05-15 20:37:54,240 - INFO - MainThread - 所有数据已成功插入到 region 表。共插入 12292 条记录。
+2025-05-15 20:37:54,241 - INFO - MainThread - === 数据处理全部完成！脚本执行成功。 ===
