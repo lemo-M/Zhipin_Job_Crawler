@@ -599,3 +599,102 @@ TypeError: 'NoneType' object is not iterable
 2025-05-16 10:56:47,250 - INFO - MainThread - 数据统计：成功获取商圈数据城市数: 358。无数据城市数: 15。
 2025-05-16 10:56:47,250 - INFO - MainThread - 原始数据未发生变化 (从临时文件加载且与DB中json_storage内容一致)，跳过 region 表的处理和插入。
 2025-05-16 10:56:47,250 - INFO - MainThread - === 数据处理全部完成！脚本执行成功。 ===
+2025-05-16 11:01:00,781 - INFO - MainThread - === Boss Zhipin区域数据抓取脚本启动 ===
+2025-05-16 11:01:00,781 - WARNING - MainThread - 重要提示: 请确保配置文件中的 COOKIES 和 BASE_HEADERS 是最新的，否则请求很可能会失败。
+2025-05-16 11:01:00,781 - WARNING - MainThread - 临时数据文件将尝试从 './zhipin_crawler_output/temp_crawled_data.json' 加载/保存。
+2025-05-16 11:01:00,781 - WARNING - MainThread - 如果临时数据文件超过 6 小时，将强制重新爬取。
+2025-05-16 11:01:00,781 - INFO - MainThread - 发现有效的临时数据文件 (修改于 2025-05-16 10:36:57.163586), 尝试从中加载数据...
+2025-05-16 11:01:00,795 - INFO - MainThread - 从临时文件 ./zhipin_crawler_output/temp_crawled_data.json 加载原始数据成功。
+2025-05-16 11:01:00,795 - INFO - MainThread - 成功从临时文件加载数据，将跳过爬虫步骤。
+2025-05-16 11:01:00,796 - INFO - MainThread - --- 步骤 3: 将原始商圈数据保存到永久文件和数据库的json_storage表 ---
+2025-05-16 11:01:00,877 - INFO - MainThread - 原始商圈数据已保存到永久文件: ./zhipin_crawler_output/business_districts_all.json
+2025-05-16 11:01:00,899 - INFO - MainThread - 数据库中未找到 键 'all_cities' 的记录，将插入新数据。 New Hash: 6ec7b0f0ddac3db8a8f26ea661b1414a5fbae0abf8b2b3d9446fba55c1ed65c9
+2025-05-16 11:01:00,900 - INFO - MainThread - 用于生成新哈希的JSON已保存到 ./zhipin_crawler_output/debug_json_for_hash_all_cities.json
+2025-05-16 11:01:00,956 - INFO - MainThread - 键 'all_cities' 的JSON数据已成功保存/更新到数据库 city_json_storage 表。
+2025-05-16 11:01:00,956 - INFO - MainThread - 数据统计：成功获取商圈数据城市数: 358。无数据城市数: 15。
+2025-05-16 11:01:00,956 - INFO - MainThread - 检测到原始数据在数据库中已更新或为首次存储，将处理 region 表。
+2025-05-16 11:01:00,956 - INFO - MainThread - --- 步骤 4: 处理数据并插入到 region 表 ---
+2025-05-16 11:01:00,957 - ERROR - MainThread - 数据保存或插入数据库步骤执行失败: 'NoneType' object is not iterable
+Traceback (most recent call last):
+  File "D:\CrawlersRegion\CrawlersRegion.py", line 508, in main
+    crawler.process_and_insert_data_into_region(all_cities_district_data)
+  File "D:\CrawlersRegion\CrawlersRegion.py", line 388, in process_and_insert_data_into_region
+    for sub_item in sub_districts_or_streets:
+TypeError: 'NoneType' object is not iterable
+2025-05-16 11:01:00,958 - ERROR - MainThread - 请检查日志，修复问题后重试。上次爬取的数据已保存在临时文件中，若有效可用于下次运行。
+2025-05-16 11:03:58,859 - INFO - MainThread - === Boss Zhipin区域数据抓取脚本启动 ===
+2025-05-16 11:03:58,859 - WARNING - MainThread - 重要提示: 请确保配置文件中的 COOKIES 和 BASE_HEADERS 是最新的，否则请求很可能会失败。
+2025-05-16 11:03:58,859 - WARNING - MainThread - 临时数据文件将尝试从 './zhipin_crawler_output/temp_crawled_data.json' 加载/保存。
+2025-05-16 11:03:58,860 - WARNING - MainThread - 如果临时数据文件超过 6 小时，将强制重新爬取。
+2025-05-16 11:03:58,860 - INFO - MainThread - 发现有效的临时数据文件 (修改于 2025-05-16 10:36:57.163586), 尝试从中加载数据...
+2025-05-16 11:03:58,882 - INFO - MainThread - 从临时文件 ./zhipin_crawler_output/temp_crawled_data.json 加载原始数据成功。
+2025-05-16 11:03:58,882 - INFO - MainThread - 成功从临时文件加载数据，将跳过爬虫步骤。
+2025-05-16 11:03:58,882 - INFO - MainThread - --- 步骤 3: 将原始商圈数据保存到永久文件和数据库的json_storage表 ---
+2025-05-16 11:03:58,980 - INFO - MainThread - 原始商圈数据已保存到永久文件: ./zhipin_crawler_output/business_districts_all.json
+2025-05-16 11:03:59,006 - INFO - MainThread - 数据库中键 'all_cities' 的数据未发生变化，无需更新。
+2025-05-16 11:03:59,006 - INFO - MainThread - 数据统计：成功获取商圈数据城市数: 358。无数据城市数: 15。
+2025-05-16 11:03:59,006 - INFO - MainThread - 原始数据未发生变化 (从临时文件加载且与DB中json_storage内容一致)，跳过 region 表的处理和插入。
+2025-05-16 11:03:59,006 - INFO - MainThread - === 数据处理全部完成！脚本执行成功。 ===
+2025-05-16 11:12:18,946 - INFO - MainThread - === Boss Zhipin区域数据抓取脚本启动 ===
+2025-05-16 11:12:18,947 - WARNING - MainThread - 重要提示: 请确保配置文件中的 COOKIES 和 BASE_HEADERS 是最新的，否则请求很可能会失败。
+2025-05-16 11:12:18,947 - WARNING - MainThread - 临时数据文件将尝试从 './zhipin_crawler_output/temp_crawled_data.json' 加载/保存。
+2025-05-16 11:12:18,947 - WARNING - MainThread - 如果临时数据文件超过 6 小时，将强制重新爬取。
+2025-05-16 11:12:18,947 - INFO - MainThread - 发现有效的临时数据文件 (修改于 2025-05-16 10:36:57.163586), 尝试加载...
+2025-05-16 11:12:18,963 - INFO - MainThread - 从临时文件 ./zhipin_crawler_output/temp_crawled_data.json 加载原始数据成功。
+2025-05-16 11:12:18,963 - INFO - MainThread - 成功从临时文件加载数据，跳过爬虫。
+2025-05-16 11:12:18,963 - INFO - MainThread - --- 步骤 3: 保存原始商圈数据到永久文件和数据库的json_storage表 ---
+2025-05-16 11:12:19,041 - INFO - MainThread - 原始商圈数据已保存到永久文件: ./zhipin_crawler_output/business_districts_all.json
+2025-05-16 11:12:19,088 - INFO - MainThread - 数据库中键 'all_cities' 的数据未发生变化，无需更新。
+2025-05-16 11:12:19,088 - INFO - MainThread - 数据统计：成功获取商圈数据城市数: 358。无数据城市数: 15。
+2025-05-16 11:12:19,088 - INFO - MainThread - 原始数据未发生变化 (从临时文件加载且与DB中json_storage内容一致)，跳过 region 表的处理和插入。
+2025-05-16 11:12:19,089 - INFO - MainThread - === 数据处理全部完成！脚本执行成功。 ===
+2025-05-16 11:12:46,591 - INFO - MainThread - === Boss Zhipin区域数据抓取脚本启动 ===
+2025-05-16 11:12:46,591 - WARNING - MainThread - 重要提示: 请确保配置文件中的 COOKIES 和 BASE_HEADERS 是最新的，否则请求很可能会失败。
+2025-05-16 11:12:46,591 - WARNING - MainThread - 临时数据文件将尝试从 './zhipin_crawler_output/temp_crawled_data.json' 加载/保存。
+2025-05-16 11:12:46,591 - WARNING - MainThread - 如果临时数据文件超过 6 小时，将强制重新爬取。
+2025-05-16 11:12:46,591 - INFO - MainThread - 发现有效的临时数据文件 (修改于 2025-05-16 10:36:57.163586), 尝试加载...
+2025-05-16 11:12:46,606 - INFO - MainThread - 从临时文件 ./zhipin_crawler_output/temp_crawled_data.json 加载原始数据成功。
+2025-05-16 11:12:46,606 - INFO - MainThread - 成功从临时文件加载数据，跳过爬虫。
+2025-05-16 11:12:46,606 - INFO - MainThread - --- 步骤 3: 保存原始商圈数据到永久文件和数据库的json_storage表 ---
+2025-05-16 11:12:46,684 - INFO - MainThread - 原始商圈数据已保存到永久文件: ./zhipin_crawler_output/business_districts_all.json
+2025-05-16 11:12:46,707 - INFO - MainThread - 数据库中未找到 键 'all_cities' 的记录，将插入新数据。 New Hash: 6ec7b0f0ddac3db8a8f26ea661b1414a5fbae0abf8b2b3d9446fba55c1ed65c9
+2025-05-16 11:12:46,709 - INFO - MainThread - 用于生成新哈希的JSON已保存到 ./zhipin_crawler_output/debug_json_for_hash_all_cities.json
+2025-05-16 11:12:46,763 - INFO - MainThread - 键 'all_cities' 的JSON数据已成功保存/更新到数据库 city_json_storage 表。
+2025-05-16 11:12:46,764 - INFO - MainThread - 数据统计：成功获取商圈数据城市数: 358。无数据城市数: 15。
+2025-05-16 11:12:46,764 - INFO - MainThread - 检测到原始数据在数据库中已更新或为首次存储，将处理 region 表。
+2025-05-16 11:12:46,764 - INFO - MainThread - --- 步骤 4: 处理数据并插入到 region 表 ---
+2025-05-16 11:12:46,766 - INFO - MainThread - 城市 铁门关 (101132000) 无商圈数据，仅作为市级数据插入。
+2025-05-16 11:12:46,767 - INFO - MainThread - 城市 新星市 (101132500) 无商圈数据，仅作为市级数据插入。
+2025-05-16 11:12:46,767 - INFO - MainThread - 城市 白杨市 (101132700) 无商圈数据，仅作为市级数据插入。
+2025-05-16 11:12:46,767 - INFO - MainThread - 城市 胡杨河市 (101132600) 无商圈数据，仅作为市级数据插入。
+2025-05-16 11:12:46,770 - INFO - MainThread - 城市 东沙群岛 (101282200) 无商圈数据，仅作为市级数据插入。
+2025-05-16 11:12:46,770 - INFO - MainThread - 城市 三沙 (101310300) 无商圈数据，仅作为市级数据插入。
+2025-05-16 11:12:46,770 - INFO - MainThread - 城市 儋州 (101310400) 无商圈数据，仅作为市级数据插入。
+2025-05-16 11:12:46,770 - INFO - MainThread - 城市 东方 (101310900) 无商圈数据，仅作为市级数据插入。
+2025-05-16 11:12:46,770 - INFO - MainThread - 城市 定安 (101311000) 无商圈数据，仅作为市级数据插入。
+2025-05-16 11:12:46,771 - INFO - MainThread - 城市 澄迈 (101311200) 无商圈数据，仅作为市级数据插入。
+2025-05-16 11:12:46,771 - INFO - MainThread - 城市 昌江黎族自治县 (101311500) 无商圈数据，仅作为市级数据插入。
+2025-05-16 11:12:46,771 - INFO - MainThread - 城市 白沙黎族自治县 (101311400) 无商圈数据，仅作为市级数据插入。
+2025-05-16 11:12:46,771 - INFO - MainThread - 城市 陵水黎族自治县 (101311700) 无商圈数据，仅作为市级数据插入。
+2025-05-16 11:12:46,771 - INFO - MainThread - 城市 保亭黎族苗族自治县 (101311800) 无商圈数据，仅作为市级数据插入。
+2025-05-16 11:12:46,771 - INFO - MainThread - 城市 台湾 (101341100) 无商圈数据，仅作为市级数据插入。
+2025-05-16 11:12:46,773 - INFO - MainThread - 准备清空并重新插入数据到 region 表...
+2025-05-16 11:12:46,797 - INFO - MainThread - region 表已清空。
+2025-05-16 11:12:46,805 - INFO - MainThread - 已插入 373 条市级数据 (level 1)。
+2025-05-16 11:12:46,885 - INFO - MainThread - 已插入 2898 条区级数据 (level 2)。
+2025-05-16 11:12:47,079 - INFO - MainThread - 已插入 9021 条街道/商圈级数据 (level 3)。
+2025-05-16 11:12:47,082 - INFO - MainThread - 所有数据已成功插入到 region 表。共插入 12292 条记录。
+2025-05-16 11:12:47,083 - INFO - MainThread - === 数据处理全部完成！脚本执行成功。 ===
+2025-05-16 11:14:49,304 - INFO - MainThread - === Boss Zhipin区域数据抓取脚本启动 ===
+2025-05-16 11:14:49,305 - WARNING - MainThread - 重要提示: 请确保配置文件中的 COOKIES 和 BASE_HEADERS 是最新的，否则请求很可能会失败。
+2025-05-16 11:14:49,305 - WARNING - MainThread - 临时数据文件将尝试从 './zhipin_crawler_output/temp_crawled_data.json' 加载/保存。
+2025-05-16 11:14:49,305 - WARNING - MainThread - 如果临时数据文件超过 6 小时，将强制重新爬取。
+2025-05-16 11:14:49,305 - INFO - MainThread - 发现有效的临时数据文件 (修改于 2025-05-16 10:36:57.163586), 尝试加载...
+2025-05-16 11:14:49,320 - INFO - MainThread - 从临时文件 ./zhipin_crawler_output/temp_crawled_data.json 加载原始数据成功。
+2025-05-16 11:14:49,320 - INFO - MainThread - 成功从临时文件加载数据，跳过爬虫。
+2025-05-16 11:14:49,320 - INFO - MainThread - --- 步骤 3: 保存原始商圈数据到永久文件和数据库的json_storage表 ---
+2025-05-16 11:14:49,403 - INFO - MainThread - 原始商圈数据已保存到永久文件: ./zhipin_crawler_output/business_districts_all.json
+2025-05-16 11:14:49,427 - INFO - MainThread - 数据库中键 'all_cities' 的数据未发生变化，无需更新。
+2025-05-16 11:14:49,428 - INFO - MainThread - 数据统计：成功获取商圈数据城市数: 358。无数据城市数: 15。
+2025-05-16 11:14:49,428 - INFO - MainThread - 原始数据未发生变化 (从临时文件加载且与DB中json_storage内容一致)，跳过 region 表的处理和插入。
+2025-05-16 11:14:49,428 - INFO - MainThread - === 数据处理全部完成！脚本执行成功。 ===

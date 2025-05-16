@@ -73,6 +73,7 @@
     -   `user`: 数据库用户名。
     -   `password`: 数据库密码。
     -   `database`: 要使用的数据库名称。
+    -   `port`: 数据库端口
 
 2.  **`BASE_HEADERS` 和 `COOKIES`**:
     -   **至关重要**: 这些值需要从你的浏览器开发者工具中获取。请登录Boss直聘网站，然后检查网络请求（例如对 `city.json` 或 `businessDistrict.json` 的请求），复制相应的请求头和Cookie到脚本中。
