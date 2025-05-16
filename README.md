@@ -92,4 +92,4 @@
 配置完成后，在你的终端中导航到脚本所在的目录，然后运行：
 
 ```bash
-python your_script_name.py
+python CrawlersRegion.py
