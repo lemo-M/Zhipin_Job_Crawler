@@ -3,13 +3,13 @@ import json
 import time
 import random
 import hashlib
-from curl_cffi import requests
+from curl_cffi import requests  # 确保这是 curl_cffi.requests
 import os
 from tqdm import tqdm
 import logging
 import pymysql
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timedelta  # 新增导入
+from datetime import datetime, timedelta
 
 # --- 用户配置 START ---
 CITY_LIST_URL = "https://www.zhipin.com/wapi/zpCommon/data/city.json"
@@ -20,8 +20,8 @@ MAX_WORKERS = 3
 DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',
-    'password': '123456',
-    'database': 'ai',
+    'password': '123456',  # 请修改为你的密码
+    'database': 'ai',  # 请修改为你的数据库名
     'charset': 'utf8mb4'
 }
 BASE_HEADERS = {
@@ -52,17 +52,17 @@ COOKIES = {
     "__a": "25811706.1732931558.1747137355.1747146727.95.9.1.95",
     "__zp_stoken__": "5bc4fw4%2FDgkcSQg5dYRIQdVfChMOEc35XW3hzwoDCr2LCunfCtsOHwqpgwqBaUsOHwqzCs1bCrMKbcMKRWMKXS8KkwrTEh8KawpLCm8KcVcKnw4XCmcSkw7dyw7nEm8Kqw4XCnTk3EhENDA4TFBAJD8KHwogXEhgTFBAJDxYVCRAKQSrCpsKQP0RAOS5RTU4LUmJbVWhODGFWTEA%2BEgwSFj4wRTlAOsOARcK%2BesOERsOCf8OGOsOBZTlIOkbDgyQrRsODew1zDlQRwoAMwrrClRHDiWgdbcOew4DDpjZEQ8K5xL9DQydDOT89REBIP0M3QGrDil4icsOnwr%2FDiTQ5GUdDREc7P0NERTlBN0RBRClDRSlFEwsTDhcwQMOBwprDgMOoQ0Q%3D"
 }
-if "zp_token" not in BASE_HEADERS and "bst" in COOKIES:
+if "bst" in COOKIES:  # Assuming bst cookie is the zp_token
     BASE_HEADERS["zp_token"] = COOKIES["bst"]
-elif "zp_token" not in BASE_HEADERS and "zp_token" in COOKIES:
-    BASE_HEADERS["zp_token"] = COOKIES["zp_token"]
 
-# 新增配置项
 TEMP_DATA_FILE = os.path.join(OUTPUT_DIR, 'temp_crawled_data.json')
-MAX_DATA_AGE_HOURS = 6  # 临时数据文件最长保留时间（小时），超过此时间将重新爬取
+MAX_DATA_AGE_HOURS = 6
+DEBUG_JSON_OUTPUT = True  # Set to True to output JSON string used for hashing if hashes mismatch
 # --- 用户配置 END ---
 
-#日志配置
+# --- 全局设置 ---
+os.makedirs(OUTPUT_DIR, exist_ok=True)  # Ensure output directory exists before logging setup
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(threadName)s - %(message)s',
@@ -71,11 +71,9 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
-os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
 class BossZhipinCrawler:
-    # (所有类方法基本保持不变，除了batch_fetch_district_data不再直接调用_save_json_data_to_file_and_db)
     def __init__(self):
         self.base_headers = BASE_HEADERS.copy()
         self.cookies_dict = COOKIES.copy()
@@ -85,7 +83,8 @@ class BossZhipinCrawler:
 
         if not self.cookies_dict.get("__zp_stoken__") and not self.session.headers.get("zp_token"):
             logging.warning(
-                "CRITICAL: Key authentication tokens ('__zp_stoken__' cookie or 'zp_token' header) might be missing. Expect failures.")
+                "CRITICAL: Key authentication tokens ('__zp_stoken__' cookie or 'zp_token' header) "
+                "might be missing or incorrectly configured. Expect failures.")
 
     def _update_cookies_in_session(self):
         for name, value in self.cookies_dict.items():
@@ -112,18 +111,21 @@ class BossZhipinCrawler:
                 if "cityList" in zp_data_content:
                     return self._extract_city_info(zp_data_content)
                 else:
-                    logging.error(f"获取城市列表失败: 'cityList' not found in 'zpData'. Response: {data}")
-                    raise Exception("获取城市列表失败: 'cityList' not found in 'zpData'")
+                    msg = f"获取城市列表失败: 'cityList' not found in 'zpData'. Response: {data}"
+                    logging.error(msg)
+                    raise Exception(msg)
             else:
-                logging.error(f"获取城市列表失败，API响应格式不符合预期或未成功: {data}")
-                raise Exception(f"获取城市列表失败，API响应格式不符合预期或未成功. Message: {data.get('message')}")
-
+                msg = f"获取城市列表失败，API响应格式不符合预期或未成功. Response: {data.get('message', data)}"
+                logging.error(msg)
+                raise Exception(msg)
         except requests.RequestsError as e:
             logging.error(f"获取城市列表时请求出错 (curl_cffi): {e}. URL: {CITY_LIST_URL}")
             raise
         except json.JSONDecodeError as e:
+            text_preview = locals().get('response', {}).text[:500] if 'response' in locals() else 'N/A'
+            status_code = locals().get('response', {}).status_code if 'response' in locals() else 'N/A'
             logging.error(
-                f"获取城市列表失败，响应非JSON格式. Status: {response.status_code if 'response' in locals() else 'N/A'}, Text: {response.text[:500] if 'response' in locals() else 'N/A'}. Error: {e}")
+                f"获取城市列表失败，响应非JSON格式. Status: {status_code}, Text: {text_preview}. Error: {e}")
             raise Exception("获取城市列表失败，响应非JSON格式")
         except Exception as e:
             logging.error(f"获取城市列表时发生未知错误: {e}")
@@ -136,21 +138,16 @@ class BossZhipinCrawler:
             return []
 
         for group in zp_data_content["cityList"]:
-            if group and isinstance(group.get("subLevelModelList"), list):
-                for city_item in group["subLevelModelList"]:
-                    if city_item and city_item.get("name") and city_item.get("code"):
-                        if city_item["name"] in ["不限", "全国"]:
-                            continue
-                        cities.append({
-                            "name": str(city_item["name"]),
-                            "code": str(city_item["code"])
-                        })
-            elif group and group.get("name") and group.get("code") and not group.get("subLevelModelList"):
+            for city_item in group.get("subLevelModelList", []):  # Iterate even if subLevelModelList is None or empty
+                if city_item and city_item.get("name") and city_item.get("code"):
+                    if city_item["name"] in ["不限", "全国"]:
+                        continue
+                    cities.append({"name": str(city_item["name"]), "code": str(city_item["code"])})
+            # Handle cases where a group item itself might be a city (without subLevelModelList)
+            if group and group.get("name") and group.get("code") and not group.get("subLevelModelList"):
                 if group["name"] not in ["不限", "全国"]:
-                    cities.append({
-                        "name": str(group["name"]),
-                        "code": str(group["code"])
-                    })
+                    cities.append({"name": str(group["name"]), "code": str(group["code"])})
+
         if not cities:
             logging.warning("未能从city.json中提取任何城市信息。请检查API响应结构和_extract_city_info逻辑。")
         else:
@@ -167,69 +164,52 @@ class BossZhipinCrawler:
 
     def fetch_district_data(self, city_name, city_code):
         url = "https://www.zhipin.com/wapi/zpgeek/businessDistrict.json"
-        params = {
-            "cityCode": city_code,
-            "_": int(time.time() * 1000)
-        }
-        dynamic_headers = self._get_dynamic_headers(city_code)
+        params = {"cityCode": city_code, "_": int(time.time() * 1000)}
+        status_args = {"city_name": city_name, "city_code": city_code, "data": None}  # Base for return dict
         try:
             response = self.session.get(
                 url,
                 params=params,
-                headers=dynamic_headers,
+                headers=self._get_dynamic_headers(city_code),
                 timeout=20,
                 impersonate="chrome110"
             )
-            response.raise_for_status()
+            response.raise_for_status()  # Check for HTTP 4xx/5xx errors
             data = response.json()
-            if data.get("message") == "Success" and "zpData" in data and \
-                    isinstance(data["zpData"], dict) and "businessDistrict" in data["zpData"] and \
-                    data["zpData"]["businessDistrict"] is not None:
+
+            if data.get("message") == "Success" and \
+                    isinstance(data.get("zpData"), dict) and \
+                    data["zpData"].get("businessDistrict") is not None:  # Check businessDistrict explicitly for None
                 district_data = data["zpData"]["businessDistrict"]
-                if isinstance(district_data, dict) and district_data.get("code"):
-                    return {
-                        "city_name": city_name, "city_code": city_code,
-                        "data": district_data, "status": "success"
-                    }
+                if isinstance(district_data, dict) and district_data.get("code"):  # Ensure it's a dict with a code
+                    return {**status_args, "data": district_data, "status": "success"}
                 else:
                     logging.info(f"{city_name}({city_code}) - 商圈数据存在但为空或格式无效: {district_data}")
-                    return {
-                        "city_name": city_name, "city_code": city_code, "data": None,
-                        "status": "empty_data", "message": "商圈数据为空或格式无效"
-                    }
-            elif data.get("message") == "Success":
+                    return {**status_args, "status": "empty_data", "message": "商圈数据为空或格式无效"}
+            elif data.get("message") == "Success":  # API success but no (valid) businessDistrict
                 logging.info(f"{city_name}({city_code}) - API响应成功但无商圈数据. Response: {data}")
-                return {
-                    "city_name": city_name, "city_code": city_code, "data": None,
-                    "status": "empty_data", "message": "无商圈数据 (API成功响应但zpData为空)"
-                }
-            else:
+                return {**status_args, "status": "empty_data",
+                        "message": "无商圈数据 (API成功但zpData/businessDistrict为空或无效)"}
+            else:  # API returned an error message in JSON
                 error_msg = data.get('message', '未知API错误')
                 logging.warning(f"{city_name}({city_code}) - 获取商圈数据API返回错误: {error_msg}. Response: {data}")
-                return {
-                    "city_name": city_name, "city_code": city_code, "data": None,
-                    "status": "failed", "message": f"API Error: {error_msg}"
-                }
+                return {**status_args, "status": "failed", "message": f"API Error: {error_msg}"}
+
         except requests.HTTPError as e:
             logging.error(f"{city_name}({city_code}) - HTTP错误 {e.response.status_code}: {e.response.text[:500]}")
-            return {"city_name": city_name, "city_code": city_code, "data": None, "status": "failed",
-                    "message": f"HTTP {e.response.status_code}"}
+            return {**status_args, "status": "failed", "message": f"HTTP {e.response.status_code}"}
         except json.JSONDecodeError:
-            logging.error(
-                f"{city_name}({city_code}) - 响应非JSON格式. Text: {response.text[:500] if 'response' in locals() else 'N/A'}")
-            return {"city_name": city_name, "city_code": city_code, "data": None, "status": "failed",
-                    "message": "JSONDecodeError"}
-        except requests.RequestsError as e:
+            text_preview = locals().get('response', {}).text[:500] if 'response' in locals() else 'N/A'
+            logging.error(f"{city_name}({city_code}) - 响应非JSON格式. Text: {text_preview}")
+            return {**status_args, "status": "failed", "message": "JSONDecodeError"}
+        except requests.RequestsError as e:  # More general request errors (timeout, connection)
             logging.error(f"{city_name}({city_code}) - 请求商圈数据时出错 (curl_cffi): {str(e)}")
-            return {"city_name": city_name, "city_code": city_code, "data": None, "status": "error",
-                    "message": f"RequestError: {str(e)}"}
+            return {**status_args, "status": "error", "message": f"RequestError: {str(e)}"}
         except Exception as e:
             logging.error(f"{city_name}({city_code}) - 获取商圈数据时发生未知异常: {str(e)}")
-            return {"city_name": city_name, "city_code": city_code, "data": None, "status": "error",
-                    "message": f"Unknown Exception: {str(e)}"}
+            return {**status_args, "status": "error", "message": f"Unknown Exception: {str(e)}"}
 
     def batch_fetch_district_data(self, city_list):
-        """批量获取所有指定城市的商圈数据，但不直接保存到数据库的json_storage表"""
         results = []
         failed_cities_details = []
 
@@ -238,7 +218,6 @@ class BossZhipinCrawler:
                 executor.submit(self.fetch_district_data, city['name'], city['code']): city
                 for city in city_list
             }
-
             for future in tqdm(as_completed(future_to_city), total=len(city_list), desc="抓取商圈数据进度"):
                 city_meta = future_to_city[future]
                 try:
@@ -246,10 +225,8 @@ class BossZhipinCrawler:
                     results.append(result)
                     if result['status'] not in ('success', 'empty_data'):
                         failed_cities_details.append({
-                            'name': city_meta['name'],
-                            'code': city_meta['code'],
-                            'status': result['status'],
-                            'reason': result.get('message', '未知原因')
+                            'name': city_meta['name'], 'code': city_meta['code'],
+                            'status': result['status'], 'reason': result.get('message', '未知原因')
                         })
                 except Exception as e:
                     logging.error(f"处理城市 {city_meta['name']} ({city_meta['code']}) 的future时发生意外错误: {e}")
@@ -267,23 +244,18 @@ class BossZhipinCrawler:
             for fc in failed_cities_details:
                 logging.error(f"  城市: {fc['name']}({fc['code']}), 状态: {fc['status']}, 原因: {fc['reason']}")
             raise Exception("部分城市商圈数据获取失败，程序终止。请检查日志。")
-
-        # 不再在这里调用 _save_json_data_to_file_and_db
-        # 而是将结果返回，由 main 函数决定如何处理
         return results
 
     def _save_raw_data_to_temp_file(self, data_to_save, filepath):
-        """将原始爬取数据保存到临时JSON文件"""
         try:
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(data_to_save, f, ensure_ascii=False, indent=2)
             logging.info(f"原始爬取数据已成功保存到临时文件: {filepath}")
         except IOError as e:
             logging.error(f"保存原始数据到临时文件 {filepath} 失败: {e}")
-            raise  # 保存失败是严重问题，需要上报
+            raise
 
     def _load_raw_data_from_temp_file(self, filepath):
-        """从临时JSON文件加载原始爬取数据"""
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
                 data = json.load(f)
@@ -294,41 +266,74 @@ class BossZhipinCrawler:
             return None
         except json.JSONDecodeError as e:
             logging.error(f"解析临时数据文件 {filepath} 失败: {e}。文件可能已损坏。")
-            return None  # 文件损坏，视为无效
+            return None
         except IOError as e:
             logging.error(f"读取临时数据文件 {filepath} 失败: {e}")
             return None
 
     def _save_json_data_to_file_and_db(self, data_to_save):
-        """
-        保存JSON数据到永久文件 (business_districts_all.json) 和数据库的city_json_storage表.
-        这个方法现在接收处理好的数据。
-        """
         permanent_output_file = os.path.join(OUTPUT_DIR, 'business_districts_all.json')
         try:
             with open(permanent_output_file, 'w', encoding='utf-8') as f:
                 json.dump(data_to_save, f, ensure_ascii=False, indent=2)
-            logging.info(f"所有城市的原始商圈数据已保存到永久文件: {permanent_output_file}")
+            logging.info(f"原始商圈数据已保存到永久文件: {permanent_output_file}")
         except IOError as e:
             logging.error(f"保存商圈数据到永久JSON文件失败: {e}")
 
+        data_updated_in_db = False  # Flag to return
+        canonical_data_for_hashing = None
         try:
-            json_str = json.dumps(data_to_save, ensure_ascii=False, sort_keys=True)
+            if isinstance(data_to_save, list):
+                def get_sort_key(item):
+                    if isinstance(item, dict):
+                        return str(item.get('city_code', ''))  # Use get, convert to str for safety
+                    return str(item)  # Fallback for non-dict items or if key is missing
+
+                try:
+                    canonical_data_for_hashing = sorted(data_to_save, key=get_sort_key)
+                except Exception as sort_e:  # Catch any sorting error
+                    logging.error(f"为哈希目的排序数据时发生错误: {sort_e}. 将使用原始顺序（可能导致哈希不一致）。")
+                    canonical_data_for_hashing = data_to_save  # Fallback
+            else:
+                canonical_data_for_hashing = data_to_save
+
+            json_str = json.dumps(canonical_data_for_hashing, ensure_ascii=False, sort_keys=True)
             data_hash = hashlib.sha256(json_str.encode('utf-8')).hexdigest()
+
         except Exception as e:
             logging.error(f"计算数据哈希值时出错: {e}")
-            return
+            raise  # Re-raise to indicate critical failure for this step
 
         conn = None
         try:
             conn = pymysql.connect(**DB_CONFIG)
             with conn.cursor() as cursor:
-                cursor.execute("SELECT data_hash FROM city_json_storage WHERE data_key = %s", ('all_cities',))
+                data_key_for_db = 'all_cities'
+                cursor.execute("SELECT data_hash FROM city_json_storage WHERE data_key = %s", (data_key_for_db,))
                 existing_record = cursor.fetchone()
+                existing_hash_from_db = existing_record[0] if existing_record else None
 
-                if existing_record and existing_record[0] == data_hash:
-                    logging.info("数据库中的商圈原始JSON数据未发生变化，无需更新。")
+                if existing_hash_from_db and existing_hash_from_db == data_hash:
+                    logging.info(f"数据库中键 '{data_key_for_db}' 的数据未发生变化，无需更新。")
+                    data_updated_in_db = False
                 else:
+                    log_msg_prefix = f"键 '{data_key_for_db}'"
+                    if existing_hash_from_db:
+                        logging.warning(f"{log_msg_prefix} 的哈希不匹配，将更新数据库。")
+                        logging.info(f"  DB Hash  : {existing_hash_from_db}")
+                        logging.info(f"  New Hash : {data_hash}")
+                    else:
+                        logging.info(f"数据库中未找到 {log_msg_prefix} 的记录，将插入新数据。 New Hash: {data_hash}")
+
+                    if DEBUG_JSON_OUTPUT:
+                        debug_json_path = os.path.join(OUTPUT_DIR, f"debug_json_for_hash_{data_key_for_db}.json")
+                        try:
+                            with open(debug_json_path, "w", encoding="utf-8") as f_debug:
+                                f_debug.write(json_str)
+                            logging.info(f"用于生成新哈希的JSON已保存到 {debug_json_path}")
+                        except IOError as io_err:
+                            logging.error(f"保存调试JSON文件失败: {io_err}")
+
                     sql = """
                     INSERT INTO city_json_storage (data_key, json_data, data_hash, update_time)
                     VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
@@ -337,23 +342,25 @@ class BossZhipinCrawler:
                         data_hash = VALUES(data_hash),
                         update_time = CURRENT_TIMESTAMP
                     """
-                    cursor.execute(sql, ('all_cities', json_str, data_hash))
+                    cursor.execute(sql, (data_key_for_db, json_str, data_hash))
                     conn.commit()
-                    logging.info("商圈原始JSON数据已成功保存/更新到数据库 city_json_storage 表。")
+                    logging.info(f"{log_msg_prefix} 的JSON数据已成功保存/更新到数据库 city_json_storage 表。")
+                    data_updated_in_db = True
         except pymysql.Error as e:
             logging.error(f"保存JSON数据到数据库 city_json_storage 时出错: {e}")
-            raise  # 重大错误，需要上报
-        except Exception as e:  # 捕获其他可能的错误，例如 'cryptography' --MySQL5.x和 MySQL8.x的密码策略不同
+            if conn: conn.rollback()
+            raise
+        except Exception as e:
             logging.error(f"保存JSON数据到数据库时发生一般错误: {e}")
-            raise  # 重大错误，需要上报
+            if conn: conn.rollback()
+            raise
         finally:
             if conn:
                 conn.close()
+        return data_updated_in_db  # Return the flag
 
     def process_and_insert_data_into_region(self, cities_district_data):
-        level1_inserts = []
-        level2_inserts = []
-        level3_inserts = []
+        level1_inserts, level2_inserts, level3_inserts = [], [], []  # Initialize lists
 
         for city_entry in cities_district_data:
             city_q_name = city_entry['city_name']
@@ -367,7 +374,8 @@ class BossZhipinCrawler:
                     logging.warning(
                         f"城市 {city_q_name} ({city_q_code}) 的商圈数据API返回代码 ({city_api_code}) 与查询代码不符。将使用API返回代码。")
                 level1_inserts.append((city_api_code, city_api_name, None, 1))
-                districts = actual_city_data.get('subLevelModelList') or []
+
+                districts = actual_city_data.get('subLevelModelList', [])  # Use .get with default
                 for district in districts:
                     if not (district and district.get('code') and district.get('name')):
                         logging.warning(f"城市 {city_api_name} ({city_api_code}) 的区级数据不完整，跳过: {district}")
@@ -375,7 +383,8 @@ class BossZhipinCrawler:
                     district_code = str(district['code'])
                     district_name = str(district['name']).replace("'", "''")
                     level2_inserts.append((district_code, district_name, city_api_code, 2))
-                    sub_districts_or_streets = district.get('subLevelModelList') or []
+
+                    sub_districts_or_streets = district.get('subLevelModelList', [])  # Use .get with default
                     for sub_item in sub_districts_or_streets:
                         if not (sub_item and sub_item.get('code') and sub_item.get('name')):
                             logging.warning(
@@ -387,15 +396,18 @@ class BossZhipinCrawler:
             elif city_entry['status'] == 'empty_data':
                 logging.info(f"城市 {city_q_name} ({city_q_code}) 无商圈数据，仅作为市级数据插入。")
                 level1_inserts.append((city_q_code, city_q_name.replace("'", "''"), None, 1))
+
         conn = None
         try:
             conn = pymysql.connect(**DB_CONFIG)
+            conn.autocommit(False)  # Explicitly set autocommit to False for transaction control
             with conn.cursor() as cursor:
                 logging.info("准备清空并重新插入数据到 region 表...")
                 cursor.execute("SET FOREIGN_KEY_CHECKS = 0;")
-                cursor.execute("TRUNCATE TABLE region")
+                cursor.execute("TRUNCATE TABLE region")  # TRUNCATE is DDL, implicitly commits in some DBs
                 cursor.execute("SET FOREIGN_KEY_CHECKS = 1;")
                 logging.info("region 表已清空。")
+
                 insert_sql = "INSERT INTO region (code, name, parent_code, level) VALUES (%s, %s, %s, %s)"
                 if level1_inserts:
                     cursor.executemany(insert_sql, level1_inserts)
@@ -406,16 +418,17 @@ class BossZhipinCrawler:
                 if level3_inserts:
                     cursor.executemany(insert_sql, level3_inserts)
                     logging.info(f"已插入 {len(level3_inserts)} 条街道/商圈级数据 (level 3)。")
-                conn.commit()
+
+                conn.commit()  # Commit all INSERTs if no error occurred
                 total_inserted = len(level1_inserts) + len(level2_inserts) + len(level3_inserts)
                 logging.info(f"所有数据已成功插入到 region 表。共插入 {total_inserted} 条记录。")
         except pymysql.Error as e:
             logging.error(f"数据库操作 (region表) 出错: {e}")
-            if conn: conn.rollback()
+            if conn: conn.rollback()  # Rollback on pymysql error
             raise
-        except Exception as e:  # 捕获其他可能的错误，例如上面你遇到的 'cryptography'
+        except Exception as e:
             logging.error(f"处理并插入数据到 region 表时发生一般错误: {e}")
-            if conn: conn.rollback()
+            if conn: conn.rollback()  # Rollback on general error
             raise
         finally:
             if conn:
@@ -430,9 +443,9 @@ def main():
 
     crawler = BossZhipinCrawler()
     all_cities_district_data = None
-    force_recrawl = False  # 可以通过命令行参数控制这个
+    force_recrawl = False
+    source_data_is_newly_fetched = False  # Flag to track if data was fetched in this run
 
-    # 检查点逻辑
     if os.path.exists(TEMP_DATA_FILE) and not force_recrawl:
         try:
             file_mod_time = datetime.fromtimestamp(os.path.getmtime(TEMP_DATA_FILE))
@@ -443,66 +456,73 @@ def main():
                     logging.info("成功从临时文件加载数据，将跳过爬虫步骤。")
                 else:
                     logging.warning("临时数据文件无效或解析失败，将执行爬虫。")
+                    all_cities_district_data = None  # Ensure re-crawl
             else:
                 logging.info(f"临时数据文件已超过 {MAX_DATA_AGE_HOURS} 小时，将执行爬虫。")
+                all_cities_district_data = None  # Ensure re-crawl
         except Exception as e:
             logging.warning(f"检查临时数据文件时发生错误: {e}。将执行爬虫。")
-            all_cities_district_data = None  # 确保如果加载失败，会重新爬取
+            all_cities_district_data = None  # Ensure re-crawl
 
-    if all_cities_district_data is None:  # 如果没有从文件加载成功，则执行爬虫
+    if all_cities_district_data is None:
+        source_data_is_newly_fetched = True  # Mark that data will be newly fetched
         try:
             logging.info("--- 步骤 1: 获取城市列表 ---")
             city_list = crawler.fetch_city_list()
             if not city_list:
                 logging.error("未能获取到城市列表，程序终止。")
-                return  # 或者 exit(1)
+                return
             logging.info(f"成功获取 {len(city_list)} 个城市的基础信息。")
 
             logging.info(f"--- 步骤 2: 批量获取 {len(city_list)} 个城市的商圈数据 ---")
             all_cities_district_data = crawler.batch_fetch_district_data(city_list)
-
-            # 爬取成功后，立即保存到临时文件
+            # Save to temp file immediately after successful fetch
             crawler._save_raw_data_to_temp_file(all_cities_district_data, TEMP_DATA_FILE)
 
         except Exception as e:
             logging.error(f"爬虫步骤执行失败: {e}", exc_info=True)
             logging.error("请检查日志，修复问题后重试。")
-            # exit(1) # 根据需要决定是否在这里退出
-            return  # 确保如果爬虫失败，后续步骤不会执行
+            return  # Terminate if crawling fails
 
-    # ---- 后续处理步骤 ----
-    # 无论数据是新爬取的还是从文件加载的，都会执行以下步骤
+    # Proceed only if data is available (either loaded or newly fetched)
     if all_cities_district_data:
+        data_source_changed_in_db = False  # Flag from step 3
         try:
             logging.info("--- 步骤 3: 将原始商圈数据保存到永久文件和数据库的json_storage表 ---")
-            # 这个方法现在只负责保存，不负责获取
-            crawler._save_json_data_to_file_and_db(all_cities_district_data)
+            data_source_changed_in_db = crawler._save_json_data_to_file_and_db(all_cities_district_data)
 
-            successful_fetches = [d for d in all_cities_district_data if d['status'] == 'success']
-            empty_data_fetches = [d for d in all_cities_district_data if d['status'] == 'empty_data']
+            successful_fetches = sum(1 for d in all_cities_district_data if d['status'] == 'success')
+            empty_data_fetches = sum(1 for d in all_cities_district_data if d['status'] == 'empty_data')
             logging.info(
-                f"数据统计：成功获取商圈数据城市数: {len(successful_fetches)}。无数据城市数: {len(empty_data_fetches)}。")
+                f"数据统计：成功获取商圈数据城市数: {successful_fetches}。无数据城市数: {empty_data_fetches}。")
 
-            logging.info("--- 步骤 4: 处理数据并插入到 region 表 ---")
-            crawler.process_and_insert_data_into_region(all_cities_district_data)
+            # Process region table if data is newly fetched OR if it changed in the DB storage
+            if source_data_is_newly_fetched or data_source_changed_in_db:
+                if source_data_is_newly_fetched and not data_source_changed_in_db:
+                    logging.info("数据为新爬取 (但与DB中json_storage内容一致)，仍将处理 region 表以确保同步。")
+                elif data_source_changed_in_db:  # Covers new data首次存入DB, or DB中数据被更新
+                    logging.info("检测到原始数据在数据库中已更新或为首次存储，将处理 region 表。")
+                # else: # Implies source_data_is_newly_fetched is True and data_source_changed_in_db is True (already covered)
+
+                logging.info("--- 步骤 4: 处理数据并插入到 region 表 ---")
+                crawler.process_and_insert_data_into_region(all_cities_district_data)
+            else:  # Not newly fetched AND no change in DB json_storage
+                logging.info(
+                    "原始数据未发生变化 (从临时文件加载且与DB中json_storage内容一致)，跳过 region 表的处理和插入。")
 
             logging.info("=== 数据处理全部完成！脚本执行成功。 ===")
 
         except Exception as e:
             logging.error(f"数据保存或插入数据库步骤执行失败: {e}", exc_info=True)
             logging.error("请检查日志，修复问题后重试。上次爬取的数据已保存在临时文件中，若有效可用于下次运行。")
-            # exit(1)
     else:
         logging.error("未能获取或加载任何商圈数据，无法进行后续处理。程序终止。")
-        # exit(1)
 
 
 if __name__ == "__main__":
-    # 为了解决你之前遇到的 `cryptography` 问题，确保它已安装
     try:
         import cryptography
     except ImportError:
         logging.error("关键依赖 'cryptography' 未安装。请运行 'pip install cryptography' 后重试。")
-        # exit(1) # 可以选择在这里直接退出
-        # 为了演示，我们继续，但如果DB需要它，后续会失败
+        # exit(1) # Uncomment to exit if cryptography is missing
     main()
