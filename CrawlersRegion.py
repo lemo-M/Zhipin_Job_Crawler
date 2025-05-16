@@ -5,11 +5,11 @@ import random
 import hashlib
 from curl_cffi import requests  # 确保这是 curl_cffi.requests
 import os
-from tqdm import tqdm
-import logging
-import pymysql
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timedelta
+from tqdm import tqdm  # 用于显示进度条
+import logging  # 用于记录日志
+import pymysql  # 用于连接MySQL数据库
+from concurrent.futures import ThreadPoolExecutor, as_completed  # 用于多线程并发
+from datetime import datetime, timedelta  # 用于处理日期时间
 
 # --- 用户配置 START ---
 CITY_LIST_URL = "https://www.zhipin.com/wapi/zpCommon/data/city.json"
@@ -18,12 +18,12 @@ REQUEST_INTERVAL = random.uniform(1.5, 3.5)
 MAX_WORKERS = 3
 
 DB_CONFIG = {
-    'host': 'localhost',
+    'host': '43.153.41.128',
     'user': 'root',
-    'password': '123456',  # 请修改为你的密码
-    'database': 'ai',  # 请修改为你的数据库名
-    'port': 3306,
-    'charset': 'utf8mb4'
+    'password': 'blueCat666',  # !!! 请修改为你的数据库密码 !!!
+    'database': 'hr-ai',  # !!! 请修改为你的数据库名 !!!
+    'charset': 'utf8mb4',
+    'port': 7777
 }
 BASE_HEADERS = {
     "accept": "application/json, text/plain, */*",
@@ -56,9 +56,12 @@ COOKIES = {
 if "bst" in COOKIES:
     BASE_HEADERS["zp_token"] = COOKIES["bst"]
 
-TEMP_DATA_FILE = os.path.join(OUTPUT_DIR, 'temp_crawled_data.json')
+# TEMP_DATA_FILE 现在存储转换后的 RegionVo 结构列表
+TEMP_DATA_FILE = os.path.join(OUTPUT_DIR, 'temp_regionvo_data.json')  # 修改文件名以反映内容变化
 MAX_DATA_AGE_HOURS = 6
 DEBUG_JSON_OUTPUT = True
+PERMANENT_REGIONVO_JSON_FILE = os.path.join(OUTPUT_DIR, 'all_cities_regionvo_structure.json')  # 唯一的永久JSON文件
+DB_STORAGE_KEY_REGIONVO = 'all_cities_regionvo'  # 数据库中存储RegionVo结构JSON的键
 # --- 用户配置 END ---
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -92,7 +95,7 @@ class BossZhipinCrawler:
         return headers
 
     def fetch_city_list(self):
-        logging.info("Attempting to fetch city list...")
+        logging.info("尝试获取城市列表...")
         try:
             response = self.session.get(CITY_LIST_URL, timeout=20, impersonate="chrome110")
             response.raise_for_status()
@@ -113,7 +116,7 @@ class BossZhipinCrawler:
     def _extract_city_info(self, zp_data_content):
         cities = []
         if not zp_data_content.get("cityList") or not isinstance(zp_data_content["cityList"], list):
-            logging.warning("`cityList` not found or not a list for extraction.");
+            logging.warning("`cityList` 在城市数据中未找到或格式不正确，无法提取。");
             return []
         for group in zp_data_content["cityList"]:
             for city_item in group.get("subLevelModelList", []):
@@ -163,17 +166,13 @@ class BossZhipinCrawler:
                 logging.warning(f"{city_name}({city_code}) - 获取商圈数据API返回错误: {error_msg}. Response: {data}")
                 return {**status_args, "status": "failed", "message": f"API Error: {error_msg}"}
         except requests.HTTPError as e:
-            return {"city_name": city_name, "city_code": city_code, "data": None, "status": "failed",
-                    "message": f"HTTP {e.response.status_code}"}
+            return {**status_args, "status": "failed", "message": f"HTTP {e.response.status_code}"}
         except json.JSONDecodeError:
-            return {"city_name": city_name, "city_code": city_code, "data": None, "status": "failed",
-                    "message": "JSONDecodeError"}
+            return {**status_args, "status": "failed", "message": "JSONDecodeError"}
         except requests.RequestsError as e:
-            return {"city_name": city_name, "city_code": city_code, "data": None, "status": "error",
-                    "message": f"RequestError: {e}"}
+            return {**status_args, "status": "error", "message": f"RequestError: {e}"}
         except Exception as e:
-            return {"city_name": city_name, "city_code": city_code, "data": None, "status": "error",
-                    "message": f"Unknown Exception: {e}"}
+            return {**status_args, "status": "error", "message": f"Unknown Exception: {e}"}
 
     def batch_fetch_district_data(self, city_list):
         results, failed_cities_details = [], []
@@ -200,228 +199,203 @@ class BossZhipinCrawler:
             for fc in failed_cities_details: logging.error(
                 f"失败城市: {fc['name']}({fc['code']}), 状态: {fc['status']}, 原因: {fc['reason']}")
             raise Exception(f"发现 {len(failed_cities_details)} 个城市未能成功获取商圈数据，程序终止。")
-        return results
+        return results  # 返回的是原始API数据列表
 
-    def _save_raw_data_to_temp_file(self, data_to_save, filepath):
+    def _save_converted_data_to_temp_file(self, data_to_save_region_vo_list, filepath):  # 修改了方法名和参数名
+        """将转换后的RegionVo结构数据保存到临时JSON文件。"""
         try:
             with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(data_to_save, f, ensure_ascii=False, indent=2)
-            logging.info(f"原始爬取数据已保存到临时文件: {filepath}")
+                json.dump(data_to_save_region_vo_list, f, ensure_ascii=False, indent=2)
+            logging.info(f"转换后的RegionVo结构数据已保存到临时文件: {filepath}")
         except IOError as e:
-            logging.error(f"保存原始数据到临时文件 {filepath} 失败: {e}"); raise
+            logging.error(f"保存转换后的RegionVo结构数据到临时文件 {filepath} 失败: {e}")
+            raise
 
-    def _load_raw_data_from_temp_file(self, filepath):
+    def _load_converted_data_from_temp_file(self, filepath):  # 修改了方法名
+        """从临时JSON文件加载转换后的RegionVo结构数据。"""
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            logging.info(f"从临时文件 {filepath} 加载原始数据成功。");
+            logging.info(f"从临时文件 {filepath} 加载转换后的RegionVo结构数据成功。")
             return data
         except FileNotFoundError:
-            logging.info(f"临时数据文件 {filepath} 未找到。"); return None
+            logging.info(f"临时数据文件 {filepath} (RegionVo结构) 未找到。")
+            return None
         except json.JSONDecodeError as e:
-            logging.error(f"解析临时数据文件 {filepath} 失败: {e}."); return None
+            logging.error(f"解析临时数据文件 {filepath} (RegionVo结构) 失败: {e}。")
+            return None
         except IOError as e:
-            logging.error(f"读取临时数据文件 {filepath} 失败: {e}"); return None
+            logging.error(f"读取临时数据文件 {filepath} (RegionVo结构) 失败: {e}")
+            return None
 
-    def _save_json_data_to_file_and_db(self, data_to_save):
-        # 将整体数据保存到永久JSON文件 (作为一种备份)
-        permanent_output_file = os.path.join(OUTPUT_DIR, 'business_districts_all.json')
+    def _convert_to_region_vo_structure(self, boss_data_node, level, parent_code=None):
+        """递归将Boss API节点转换为RegionVo兼容字典。"""
+        if not boss_data_node or not boss_data_node.get('code') or not boss_data_node.get('name'):
+            return None
+        region_vo_node = {
+            "code": str(boss_data_node.get('code')),
+            "name": str(boss_data_node.get('name')).replace("'", "''"),
+            "level": level,
+            "parentCode": parent_code,
+            "subLevelModelList": []
+        }
+        boss_sub_level_list = boss_data_node.get('subLevelModelList')
+        if isinstance(boss_sub_level_list, list):
+            for sub_node_data in boss_sub_level_list:
+                converted_sub_node = self._convert_to_region_vo_structure(sub_node_data, level + 1,
+                                                                          region_vo_node["code"])
+                if converted_sub_node:
+                    region_vo_node["subLevelModelList"].append(converted_sub_node)
+        return region_vo_node
+
+    def _save_regionvo_json_to_permanent_storage(self, data_to_save_region_vo_list):  # 修改了方法名
+        """
+        将转换后的RegionVo结构数据保存到永久JSON文件，并存入数据库的 `city_json_storage` 表。
+        返回: 布尔值，指示数据库中的数据是否被更新。
+        """
+        # 1. 保存到永久JSON文件
         try:
-            with open(permanent_output_file, 'w', encoding='utf-8') as f:
-                json.dump(data_to_save, f, ensure_ascii=False, indent=2)
-            logging.info(f"原始商圈数据已保存到永久文件: {permanent_output_file}")
+            with open(PERMANENT_REGIONVO_JSON_FILE, 'w', encoding='utf-8') as f:
+                json.dump(data_to_save_region_vo_list, f, ensure_ascii=False, indent=2)
+            logging.info(f"转换后的RegionVo结构数据已保存到永久文件: {PERMANENT_REGIONVO_JSON_FILE}")
         except IOError as e:
-            logging.error(f"保存商圈数据到永久JSON文件失败: {e}")
+            logging.error(f"保存转换后数据到永久JSON文件失败: {e}")
 
-        data_updated_in_db = False  # 标记数据库中的数据是否被更新
-        canonical_data_for_hashing = None  # 用于存储排序后的、用于哈希计算的数据
+        data_updated_in_db = False
+        canonical_data_for_hashing = None
         try:
-            # 准备数据以计算哈希值，确保一致性
-            if isinstance(data_to_save, list):  # 如果data_to_save是列表 (我们期望的情况)
-                # 定义排序键函数：优先使用'city_code'，如果不存在或元素不是字典，则用元素本身转字符串
+            # 2. 准备数据以计算哈希值
+            if isinstance(data_to_save_region_vo_list, list):
                 def get_sort_key(item):
-                    if isinstance(item, dict):
-                        return str(item.get('city_code', ''))  # 使用.get避免KeyError，并转为字符串
-                    return str(item)  # 其他类型直接转字符串以供排序
+                    if isinstance(item, dict): return str(item.get('code', ''))
+                    return str(item)
 
                 try:
-                    # 对列表进行排序，确保每次生成的JSON字符串顺序一致，从而保证哈希值的一致性
-                    canonical_data_for_hashing = sorted(data_to_save, key=get_sort_key)
-                except Exception as sort_e:  # 捕获排序中可能发生的任何错误
-                    logging.error(f"为哈希目的排序数据时发生错误: {sort_e}. 将使用原始顺序（可能导致哈希不一致）。")
-                    canonical_data_for_hashing = data_to_save  # 出错则使用原始顺序作为后备
-            else:  # 如果data_to_save不是列表 (例如单个字典，虽然在此场景不太可能)
-                canonical_data_for_hashing = data_to_save
+                    canonical_data_for_hashing = sorted(data_to_save_region_vo_list, key=get_sort_key)
+                except Exception as sort_e:
+                    logging.error(f"为哈希目的排序转换后数据时发生错误: {sort_e}. 将使用原始顺序。")
+                    canonical_data_for_hashing = data_to_save_region_vo_list
+            else:
+                canonical_data_for_hashing = data_to_save_region_vo_list
 
-            # 序列化为JSON字符串，键按字母顺序排序 (sort_keys=True) 以保证一致性
             json_str = json.dumps(canonical_data_for_hashing, ensure_ascii=False, sort_keys=True)
-            # 计算JSON字符串的SHA256哈希值
             data_hash = hashlib.sha256(json_str.encode('utf-8')).hexdigest()
+        except Exception as e:
+            logging.error(f"计算转换后数据哈希值时出错: {e}"); raise
 
-        except Exception as e:  # 如果哈希计算过程出错
-            logging.error(f"计算数据哈希值时出错: {e}")
-            raise  # 重新抛出异常，这是一个关键步骤的失败
-
-        # 连接数据库，比较哈希值并更新/插入数据
+        # 3. 连接数据库，比较哈希值并更新/插入数据
         conn = None
         try:
-            conn = pymysql.connect(**DB_CONFIG)  # 建立数据库连接
-            with conn.cursor() as cursor:  # 创建数据库游标
-                data_key_for_db = 'all_cities'  # 定义在数据库中存储这条聚合数据的键名
-                # 查询数据库中是否已存在该键的数据及其哈希值
-                cursor.execute("SELECT data_hash FROM city_json_storage WHERE data_key = %s", (data_key_for_db,))
-                existing_record = cursor.fetchone()  # 获取查询结果 (一行或None)
-                existing_hash_from_db = existing_record[0] if existing_record else None  # 如果有记录，则获取哈希值
+            conn = pymysql.connect(**DB_CONFIG)
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT data_hash FROM city_json_storage WHERE data_key = %s",
+                               (DB_STORAGE_KEY_REGIONVO,))
+                existing_record = cursor.fetchone()
+                existing_hash_from_db = existing_record[0] if existing_record else None
 
-                # 比较新计算的哈希值与数据库中存储的哈希值
                 if existing_hash_from_db and existing_hash_from_db == data_hash:
-                    # 哈希值相同，表示数据内容未发生变化
-                    logging.info(f"数据库中键 '{data_key_for_db}' 的数据未发生变化，无需更新。")
-                    data_updated_in_db = False  # 标记数据库数据未更新
+                    logging.info(f"数据库中键 '{DB_STORAGE_KEY_REGIONVO}' 的数据未变，无需更新。")
+                    data_updated_in_db = False
                 else:
-                    # 哈希值不同，或数据库中尚无此记录，需要执行更新或插入操作
-                    log_msg_prefix = f"键 '{data_key_for_db}'"
-                    if existing_hash_from_db:  # 如果是哈希不匹配 (说明是更新操作)
-                        logging.warning(f"{log_msg_prefix} 的哈希不匹配，将更新数据库。")
-                        logging.info(f"  DB Hash  : {existing_hash_from_db}")  # 打印旧哈希
-                        logging.info(f"  New Hash : {data_hash}")  # 打印新哈希
-                    else:  # 如果数据库中没有记录 (说明是新插入操作)
-                        logging.info(f"数据库中未找到 {log_msg_prefix} 的记录，将插入新数据。 New Hash: {data_hash}")
-
-                    # 如果配置了调试输出，则将用于生成新哈希的JSON字符串保存到文件
+                    log_msg_prefix = f"键 '{DB_STORAGE_KEY_REGIONVO}'"
+                    if existing_hash_from_db:
+                        logging.warning(
+                            f"{log_msg_prefix} 的哈希不匹配，将更新。 DB Hash: {existing_hash_from_db}, New Hash: {data_hash}")
+                    else:
+                        logging.info(f"数据库中未找到 {log_msg_prefix} 的记录，将插入。 New Hash: {data_hash}")
                     if DEBUG_JSON_OUTPUT:
-                        debug_json_path = os.path.join(OUTPUT_DIR, f"debug_json_for_hash_{data_key_for_db}.json")
+                        debug_json_path = os.path.join(OUTPUT_DIR,
+                                                       f"debug_json_for_hash_{DB_STORAGE_KEY_REGIONVO}.json")
                         try:
                             with open(debug_json_path, "w", encoding="utf-8") as f_debug:
-                                f_debug.write(json_str)  # 将JSON字符串写入调试文件
-                            logging.info(f"用于生成新哈希的JSON已保存到 {debug_json_path}")
-                        except IOError as io_err:  # 文件写入错误
-                            logging.error(f"保存调试JSON文件失败: {io_err}")
+                                f_debug.write(json_str)
+                            logging.info(f"用于生成新哈希的RegionVo结构JSON已保存到 {debug_json_path}")
+                        except IOError as io_err:
+                            logging.error(f"保存调试JSON失败: {io_err}")
 
-                    # 构建SQL语句：插入或更新记录 (使用ON DUPLICATE KEY UPDATE实现存在则更新，不存在则插入)
-                    sql = """
-                    INSERT INTO city_json_storage (data_key, json_data, data_hash, update_time)
-                    VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
-                    ON DUPLICATE KEY UPDATE
-                        json_data = VALUES(json_data),
-                        data_hash = VALUES(data_hash),
-                        update_time = CURRENT_TIMESTAMP
-                    """
-                    cursor.execute(sql, (data_key_for_db, json_str, data_hash))  # 执行SQL
-                    conn.commit()  # 提交数据库事务
-                    logging.info(f"{log_msg_prefix} 的JSON数据已成功保存/更新到数据库 city_json_storage 表。")
-                    data_updated_in_db = True  # 标记数据库数据已更新
-        except pymysql.Error as e:  # 捕获PyMySQL相关的数据库操作错误
-            logging.error(f"保存JSON数据到数据库 city_json_storage 时出错: {e}")
-            if conn: conn.rollback()  # 如果发生错误且连接存在，则回滚事务
-            raise  # 重新抛出异常
-        except Exception as e:  # 捕获其他一般性错误
-            logging.error(f"保存JSON数据到数据库时发生一般错误: {e}")
-            if conn: conn.rollback()
-            raise
-        finally:  # 无论操作成功与否，确保数据库连接在最后被关闭
+                    sql = """INSERT INTO city_json_storage (data_key, json_data, data_hash, update_time)
+                             VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
+                             ON DUPLICATE KEY UPDATE json_data = VALUES(json_data), data_hash = VALUES(data_hash), update_time = CURRENT_TIMESTAMP"""
+                    cursor.execute(sql, (DB_STORAGE_KEY_REGIONVO, json_str, data_hash))
+                    conn.commit()
+                    logging.info(f"{log_msg_prefix} 的JSON数据已成功保存/更新到数据库。")
+                    data_updated_in_db = True
+        except pymysql.Error as e:
+            logging.error(f"保存RegionVo结构JSON到DB时出错: {e}")
+            if conn:
+                conn.rollback()
+                raise
+        except Exception as e:
+            logging.error(f"保存RegionVo结构JSON到DB时一般错误: {e}")
+            if conn:
+                conn.rollback()
+                raise
+        finally:
             if conn:
                 conn.close()
-        return data_updated_in_db  # 返回数据库数据是否被更新的标志
+                return (data_updated_in_db)
 
-    def process_and_insert_data_into_region(self, cities_district_data):
-        level1_inserts, level2_inserts, level3_inserts = [], [], []  # 初始化用于存储各级别区域数据的列表
+    def _flatten_region_vo_for_db_insert(self, region_vo_node_list):
+        inserts_by_level = {1: [], 2: [], 3: []}
 
-        # 遍历从API获取或从临时文件加载的每个城市的数据条目
-        for city_entry in cities_district_data:
-            city_q_name = city_entry['city_name']  # 获取查询时使用的城市名称
-            city_q_code = str(city_entry['city_code'])  # 获取查询时使用的城市代码
+        def recurse_flatten(nodes, current_parent_code, current_level):  # 参数名保持一致
+            if current_level > 3:
+                return
+            for node in nodes:
+                if node and node.get('code') and node.get('name') and node.get('level') == current_level:
+                    inserts_by_level[current_level].append((
+                        node['code'],
+                        node['name'],
+                        current_parent_code,
+                        current_level
+                    ))
+                    sub_nodes = node.get("subLevelModelList")
+                    if isinstance(sub_nodes, list):
+                        recurse_flatten(sub_nodes, node['code'], current_level + 1)
 
-            # 只处理状态为 'success' 且包含有效 'data' 字段的条目
-            if city_entry['status'] == 'success' and city_entry.get('data'):
-                actual_city_data = city_entry['data']  # 这是API返回的该城市的具体商圈数据结构
-                city_api_code = str(actual_city_data.get('code'))  # API返回的城市代码
-                # API返回的城市名，如果API未返回名称，则使用查询时的名称。替换SQL中的单引号。
-                city_api_name = str(actual_city_data.get('name', city_q_name)).replace("'", "''")
+        # 使用位置参数调用，或者与定义匹配的关键字参数
+        recurse_flatten(region_vo_node_list, None, 1)
 
-                # 记录一个警告如果API返回的城市代码与查询时不一致 (数据源可能的问题)
-                if city_api_code != city_q_code:
-                    logging.warning(
-                        f"城市 {city_q_name} ({city_q_code}) 的商圈数据API返回代码 ({city_api_code}) 与查询代码不符。将使用API返回代码。")
-                # 准备市级数据 (level 1)，父代码为None
-                level1_inserts.append((city_api_code, city_api_name, None, 1))
+        return inserts_by_level[1], inserts_by_level[2], inserts_by_level[3]
 
-                # 获取该城市下的区/县列表 (subLevelModelList)
-                districts_data = actual_city_data.get('subLevelModelList')
-                # 如果 districts_data 是 None (JSON中的null) 或者不是一个列表，则视为空列表，避免迭代错误
-                districts = districts_data if isinstance(districts_data, list) else []
 
-                # 遍历区/县
-                for district in districts:
-                    # 检查区/县数据是否包含必要的 code 和 name 字段
-                    if not (district and district.get('code') and district.get('name')):
-                        logging.warning(f"城市 {city_api_name} ({city_api_code}) 的区级数据不完整，跳过: {district}")
-                        continue  # 跳过这个不完整的区数据
-                    district_code = str(district['code'])
-                    district_name = str(district['name']).replace("'", "''")
-                    # 准备区级数据 (level 2)，父代码为市级代码
-                    level2_inserts.append((district_code, district_name, city_api_code, 2))
-
-                    # 获取该区/县下的街道/商圈列表
-                    sub_districts_data = district.get('subLevelModelList')
-                    # 同样处理可能为 None 或非列表的情况
-                    sub_districts_or_streets = sub_districts_data if isinstance(sub_districts_data, list) else []
-
-                    # 遍历街道/商圈
-                    for sub_item in sub_districts_or_streets:
-                        # 检查街道/商圈数据是否包含必要的 code 和 name 字段
-                        if not (sub_item and sub_item.get('code') and sub_item.get('name')):
-                            logging.warning(
-                                f"区 {district_name} ({district_code}) 的街道/商圈数据不完整，跳过: {sub_item}")
-                            continue  # 跳过这个不完整的街道数据
-                        sub_item_code = str(sub_item['code'])
-                        sub_item_name = str(sub_item['name']).replace("'", "''")
-                        # 准备街道级数据 (level 3)，父代码为区级代码
-                        level3_inserts.append((sub_item_code, sub_item_name, district_code, 3))
-            elif city_entry['status'] == 'empty_data':  # 如果城市API调用成功但返回无商圈数据
-                logging.info(f"城市 {city_q_name} ({city_q_code}) 无商圈数据，仅作为市级数据插入。")
-                level1_inserts.append((city_q_code, city_q_name.replace("'", "''"), None, 1))
-
-        # --- 数据库操作：清空并批量插入region表 ---
+    def process_and_insert_data_into_region(self, cities_region_vo_data_list):
+        all_level1_inserts, all_level2_inserts, all_level3_inserts = self._flatten_region_vo_for_db_insert(
+            cities_region_vo_data_list)
         conn = None
         try:
-            conn = pymysql.connect(**DB_CONFIG)  # 连接数据库
-            conn.autocommit(False)  # 关闭自动提交，以便进行事务控制
-            with conn.cursor() as cursor:  # 创建游标
-                logging.info("准备清空并重新插入数据到 region 表...")
-                # 在 TRUNCATE 操作前后禁用/启用外键检查，防止因外键约束导致TRUNCATE失败
-                cursor.execute("SET FOREIGN_KEY_CHECKS = 0;")
-                cursor.execute("TRUNCATE TABLE region")  # 清空 region 表
-                cursor.execute("SET FOREIGN_KEY_CHECKS = 1;")
+            conn = pymysql.connect(**DB_CONFIG)
+            conn.autocommit(False)
+            with conn.cursor() as cursor:
+                logging.info("准备清空并重新插入数据到 region 表 (基于RegionVo结构)...")
+                cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
+                cursor.execute("TRUNCATE TABLE region")
+                cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
                 logging.info("region 表已清空。")
 
-                # 构建批量插入SQL语句
                 insert_sql = "INSERT INTO region (code, name, parent_code, level) VALUES (%s, %s, %s, %s)"
-                # 批量插入市级数据
-                if level1_inserts:
-                    cursor.executemany(insert_sql, level1_inserts)
-                    logging.info(f"已插入 {len(level1_inserts)} 条市级数据 (level 1)。")
-                # 批量插入区级数据
-                if level2_inserts:
-                    cursor.executemany(insert_sql, level2_inserts)
-                    logging.info(f"已插入 {len(level2_inserts)} 条区级数据 (level 2)。")
-                # 批量插入街道级数据
-                if level3_inserts:
-                    cursor.executemany(insert_sql, level3_inserts)
-                    logging.info(f"已插入 {len(level3_inserts)} 条街道/商圈级数据 (level 3)。")
+                if all_level1_inserts:
+                    cursor.executemany(insert_sql, all_level1_inserts)
+                    logging.info(f"已插入 {len(all_level1_inserts)} 条市级数据 (level 1)。")
+                if all_level2_inserts:
+                    cursor.executemany(insert_sql, all_level2_inserts)
+                    logging.info(f"已插入 {len(all_level2_inserts)} 条区级数据 (level 2)。")
+                if all_level3_inserts:
+                    cursor.executemany(insert_sql, all_level3_inserts)
+                    logging.info(f"已插入 {len(all_level3_inserts)} 条街道/商圈级数据 (level 3)。")
 
-                conn.commit()  # 如果所有插入操作都成功，则提交事务
-                total_inserted = len(level1_inserts) + len(level2_inserts) + len(level3_inserts)
+                conn.commit()
+                total_inserted = len(all_level1_inserts) + len(all_level2_inserts) + len(all_level3_inserts)
                 logging.info(f"所有数据已成功插入到 region 表。共插入 {total_inserted} 条记录。")
-        except pymysql.Error as e:  # 捕获数据库操作相关的错误
+        except pymysql.Error as e:
             logging.error(f"数据库操作 (region表) 出错: {e}")
-            if conn: conn.rollback()  # 如果出错且连接存在，则回滚事务
-            raise  # 重新抛出异常
-        except Exception as e:  # 捕获其他一般性错误
+            if conn: conn.rollback()
+            raise
+        except Exception as e:
             logging.error(f"处理并插入数据到 region 表时发生一般错误: {e}")
             if conn: conn.rollback()
             raise
-        finally:  # 确保数据库连接在最后被关闭
+        finally:
             if conn:
                 conn.close()
 
@@ -429,75 +403,117 @@ class BossZhipinCrawler:
 def main():
     logging.info("=== Boss Zhipin区域数据抓取脚本启动 ===")
     logging.warning("重要提示: 请确保配置文件中的 COOKIES 和 BASE_HEADERS 是最新的，否则请求很可能会失败。")
-    logging.warning(f"临时数据文件将尝试从 '{TEMP_DATA_FILE}' 加载/保存。")
+    logging.warning(f"临时数据文件将尝试从 '{TEMP_DATA_FILE}' (RegionVo结构) 加载/保存。")  # 更新日志
     logging.warning(f"如果临时数据文件超过 {MAX_DATA_AGE_HOURS} 小时，将强制重新爬取。")
 
     crawler = BossZhipinCrawler()
-    all_cities_district_data = None
+    all_cities_region_vo_list = []  # 直接使用转换后的列表
     force_recrawl = False
     source_data_is_newly_fetched = False
 
+    # --- 检查点逻辑：尝试从临时文件加载转换后的RegionVo数据 ---
     if os.path.exists(TEMP_DATA_FILE) and not force_recrawl:
         try:
             file_mod_time = datetime.fromtimestamp(os.path.getmtime(TEMP_DATA_FILE))
             if datetime.now() - file_mod_time < timedelta(hours=MAX_DATA_AGE_HOURS):
-                logging.info(f"发现有效的临时数据文件 (修改于 {file_mod_time}), 尝试加载...")
-                all_cities_district_data = crawler._load_raw_data_from_temp_file(TEMP_DATA_FILE)
-                if all_cities_district_data:
-                    logging.info("成功从临时文件加载数据，跳过爬虫。")
+                logging.info(f"发现有效的临时RegionVo数据文件 (修改于 {file_mod_time}), 尝试加载...")
+                all_cities_region_vo_list = crawler._load_converted_data_from_temp_file(TEMP_DATA_FILE)  # 加载转换后数据
+                if all_cities_region_vo_list:
+                    logging.info("成功从临时文件加载转换后的RegionVo数据，将跳过爬虫和转换步骤。")
                 else:
-                    logging.warning("临时数据文件无效或解析失败，将执行爬虫。")
-                    all_cities_district_data = None
+                    logging.warning("临时RegionVo数据文件无效或解析失败，将执行爬虫和转换。")
+                    all_cities_region_vo_list = []  # 确保如果加载失败，列表是空的
             else:
-                logging.info(f"临时数据文件已超 {MAX_DATA_AGE_HOURS} 小时，将执行爬虫。")
-                all_cities_district_data = None
+                logging.info(f"临时RegionVo数据文件已超 {MAX_DATA_AGE_HOURS} 小时，将执行爬虫和转换。")
+                all_cities_region_vo_list = []
         except Exception as e:
-            logging.warning(f"检查临时数据文件时发生错误: {e}。将执行爬虫。")
-            all_cities_district_data = None
+            logging.warning(f"检查临时RegionVo数据文件时发生错误: {e}。将执行爬虫和转换。")
+            all_cities_region_vo_list = []
 
-    if all_cities_district_data is None:
+    # --- 爬虫和转换逻辑：如果未能从临时文件加载转换后数据，则执行 ---
+    if not all_cities_region_vo_list:  # 注意这里条件变化了
         source_data_is_newly_fetched = True
+        all_cities_district_data_raw = None  # 存储原始API数据
         try:
+            # 步骤1: 获取城市列表
             logging.info("--- 步骤 1: 获取城市列表 ---")
             city_list = crawler.fetch_city_list()
             if not city_list: logging.error("未能获取城市列表，终止。"); return
             logging.info(f"成功获取 {len(city_list)} 个城市基础信息。")
-            logging.info(f"--- 步骤 2: 批量获取 {len(city_list)} 个城市商圈数据 ---")
-            all_cities_district_data = crawler.batch_fetch_district_data(city_list)
-            crawler._save_raw_data_to_temp_file(all_cities_district_data, TEMP_DATA_FILE)
+
+            # 步骤2: 批量获取各城市的商圈原始数据
+            logging.info(f"--- 步骤 2: 批量获取 {len(city_list)} 个城市商圈原始数据 ---")
+            all_cities_district_data_raw = crawler.batch_fetch_district_data(city_list)
+
+            # 步骤2.5: 将原始数据转换为RegionVo结构列表
+            logging.info("--- 步骤 2.5: 将原始数据转换为RegionVo结构列表 ---")
+            if all_cities_district_data_raw:  # 确保有原始数据才转换
+                for city_entry_raw in all_cities_district_data_raw:
+                    if city_entry_raw['status'] == 'success' and city_entry_raw.get('data'):
+                        region_vo_city = crawler._convert_to_region_vo_structure(city_entry_raw['data'], level=1,
+                                                                                 parent_code=None)
+                        if region_vo_city:
+                            all_cities_region_vo_list.append(region_vo_city)
+                    elif city_entry_raw['status'] == 'empty_data':
+                        empty_city_vo = {
+                            "code": str(city_entry_raw['city_code']),
+                            "name": str(city_entry_raw['city_name']).replace("'", "''"),
+                            "level": 1, "parentCode": None, "subLevelModelList": []
+                        }
+                        all_cities_region_vo_list.append(empty_city_vo)
+                logging.info(f"数据已转换为 {len(all_cities_region_vo_list)} 个顶层RegionVo结构。")
+            else:
+                logging.warning("没有原始数据可供转换为RegionVo结构。")
+
+            # 将转换后的RegionVo数据保存到临时文件
+            if all_cities_region_vo_list:
+                crawler._save_converted_data_to_temp_file(all_cities_region_vo_list, TEMP_DATA_FILE)
+            else:
+                logging.warning("转换后RegionVo列表为空，不保存临时文件。")
+
         except Exception as e:
-            logging.error(f"爬虫步骤执行失败: {e}", exc_info=True);
+            logging.error(f"爬虫或数据转换步骤执行失败: {e}", exc_info=True)
             logging.error("请检查日志后重试。");
             return
 
-    if all_cities_district_data:
+    # --- 后续数据处理步骤：仅当有转换后的RegionVo数据时执行 ---
+    if all_cities_region_vo_list:
         data_source_changed_in_db = False
         try:
-            logging.info("--- 步骤 3: 保存原始商圈数据到永久文件和数据库的json_storage表 ---")
-            data_source_changed_in_db = crawler._save_json_data_to_file_and_db(all_cities_district_data)
+            # 步骤3: 将转换后的RegionVo结构数据保存到永久文件和数据库的city_json_storage表
+            logging.info("--- 步骤 3: 保存RegionVo结构数据到永久文件和数据库的json_storage表 ---")
+            data_source_changed_in_db = crawler._save_regionvo_json_to_permanent_storage(all_cities_region_vo_list)
 
-            success_count = sum(1 for d in all_cities_district_data if d['status'] == 'success')
-            empty_count = sum(1 for d in all_cities_district_data if d['status'] == 'empty_data')
-            logging.info(f"数据统计：成功获取商圈数据城市数: {success_count}。无数据城市数: {empty_count}。")
+            # 统计数据可以基于转换后的 all_cities_region_vo_list 的长度，或保持基于原始数据统计
+            # 这里我们假设原始数据的统计更有意义，因为它反映了API的直接响应
+            if 'all_cities_district_data_raw' in locals() and all_cities_district_data_raw is not None:
+                successful_fetches = sum(1 for d in all_cities_district_data_raw if d['status'] == 'success')
+                empty_data_fetches = sum(1 for d in all_cities_district_data_raw if d['status'] == 'empty_data')
+                logging.info(
+                    f"原始数据统计：成功获取商圈数据城市数: {successful_fetches}。无数据城市数: {empty_data_fetches}。")
+            else:  # 如果是从临时文件加载的RegionVo，原始数据可能不在内存中
+                logging.info(f"处理 {len(all_cities_region_vo_list)} 条RegionVo数据。")
 
+            # 决定是否需要更新 region 表
             if source_data_is_newly_fetched or data_source_changed_in_db:
                 if source_data_is_newly_fetched and not data_source_changed_in_db:
-                    logging.info("数据为新爬取 (但与DB中json_storage内容一致)，仍将处理 region 表以确保同步。")
+                    logging.info(
+                        "数据为新爬取并转换 (但与DB中RegionVo结构json_storage内容一致)，仍将处理 region 表以确保同步。")
                 elif data_source_changed_in_db:
-                    logging.info("检测到原始数据在数据库中已更新或为首次存储，将处理 region 表。")
+                    logging.info("检测到RegionVo结构数据在数据库中已更新或为首次存储，将处理 region 表。")
 
                 logging.info("--- 步骤 4: 处理数据并插入到 region 表 ---")
-                crawler.process_and_insert_data_into_region(all_cities_district_data)
+                crawler.process_and_insert_data_into_region(all_cities_region_vo_list)
             else:
                 logging.info(
-                    "原始数据未发生变化 (从临时文件加载且与DB中json_storage内容一致)，跳过 region 表的处理和插入。")
+                    "RegionVo结构数据未发生变化 (从临时文件加载且与DB中json_storage内容一致)，跳过 region 表的处理和插入。")
 
             logging.info("=== 数据处理全部完成！脚本执行成功。 ===")
         except Exception as e:
             logging.error(f"数据保存或插入DB步骤失败: {e}", exc_info=True)
-            logging.error("请检查日志后重试。上次爬取数据已存临时文件，若有效可用于下次运行。")
+            logging.error("请检查日志后重试。上次转换的数据已存临时文件，若有效可用于下次运行。")
     else:
-        logging.error("未能获取或加载任何商圈数据，无法后续处理。终止。")
+        logging.error("未能获取、加载或转换任何有效的RegionVo数据，无法后续处理。终止。")
 
 
 if __name__ == "__main__":
