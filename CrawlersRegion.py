@@ -25,33 +25,36 @@ DB_CONFIG = {
     'charset': 'utf8mb4',
     'port': 7777
 }
+
+# https://www.zhipin.com/wapi/zpgeek/businessDistrict.json?cityCode=101110100
+#根据这个网址，获取对应的header和cookies
 BASE_HEADERS = {
     "accept": "application/json, text/plain, */*",
     "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
     "priority": "u=1, i",
-    "sec-ch-ua": "\"Chromium\";v=\"124\", \"Google Chrome\";v=\"124\", \"Not-A.Brand\";v=\"99\"",
+    "sec-ch-ua": "\"Chromium\";v=\"124\", \"Google Chrome\";v=\"124\", \"Not-A.Brand\";v=\"99\"", # 浏览器及版本信息，可用于用户画像分析
     "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-ch-ua-platform": "\"Windows\"", # 操作系统平台信息，可用于用户画像分析
     "sec-fetch-dest": "empty",
     "sec-fetch-mode": "cors",
     "sec-fetch-site": "same-origin",
-    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36", # 完整的用户代理字符串，包含较多可用于指纹识别的信息
     "x-requested-with": "XMLHttpRequest",
-    "token": "RPf0flkFghOVYmL8",
-    "traceid": "F-0f8a65u3FEkaMhzJ",
+    "token": "<此处替换为实际的认证令牌>", # 敏感：认证令牌，通常用于API请求的身份验证，泄露会导致账户安全风险
+    "traceid": "<此处替换为实际的追踪ID>",  # 敏感：请求追踪ID，可能用于关联用户在服务端的行为日志
 }
 COOKIES = {
-    "ab_guid": "7263b56e-ef12-4081-a3a7-0b2d76908ddb",
-    "Hm_lvt_194df3105ad7148dcf2b98a91b5e727a": "1743075833,1743425693,1744336265,1744696103",
-    "wt2": "D5b5pmwvin0FY-cVJJzKQ1V7jZxk0auMbFrhtts_Yo8krqLxNPlLTGPwW-N_HwhFulmG7anyobJAJGpfF0BiBdw~~",
-    "wbg": "0",
-    "zp_at": "RBnRtDPJkcSoyKYRnQohC4gh63_DKU6NlO1dq9KDQec~",
-    "lastCity": "101281600",
-    "bst": "V2R9IiEOf631loVtRuyxUZKCiy7DrQwik~|R9IiEOf631loVtRuyxUZKCiy7DrWzSg~",
-    "__c": "1747146727",
-    "__g": "-",
-    "__a": "25811706.1732931558.1747137355.1747146727.95.9.1.95",
-    "__zp_stoken__": "5bc4fw4%2FDgkcSQg5dYRIQdVfChMOEc35XW3hzwoDCr2LCunfCtsOHwqpgwqBaUsOHwqzCs1bCrMKbcMKRWMKXS8KkwrTEh8KawpLCm8KcVcKnw4XCmcSkw7dyw7nEm8Kqw4XCnTk3EhENDA4TFBAJD8KHwogXEhgTFBAJDxYVCRAKQSrCpsKQP0RAOS5RTU4LUmJbVWhODGFWTEA%2BEgwSFj4wRTlAOsOARcK%2BesOERsOCf8OGOsOBZTlIOkbDgyQrRsODew1zDlQRwoAMwrrClRHDiWgdbcOew4DDpjZEQ8K5xL9DQydDOT89REBIP0M3QGrDil4icsOnwr%2FDiTQ5GUdDREc7P0NERTlBN0RBRClDRSlFEwsTDhcwQMOBwprDgMOoQ0Q%3D"
+    "ab_guid": "<此处替换为实际的AB测试GUID>", # 敏感：A/B测试的用户分组标识符，或通用的全局唯一用户标识符
+    "Hm_lvt_194df3105ad7148dcf2b98a91b5e727a": "<此处替换为实际的百度统计首次访问时间戳>", # 敏感：百度统计（Hm_lvt_前缀）的用户访问时间记录，可用于追踪用户行为
+    "wt2": "<此处替换为实际的会话令牌或加密信息>", # 敏感：可能是一个重要的会话令牌或加密的用户信息，泄露可能导致会话劫持
+    "wbg": "0", # 一般设置，敏感度较低，具体含义需视网站而定
+    "zp_at": "<此处替换为实际的访问令牌>", # 敏感：名称暗示为某个特定服务（可能与'zp'相关）的访问令牌(access token)
+    "lastCity": "<此处替换为实际的城市代码>", # 敏感：用户上次选择或定位的城市代码，涉及地理位置隐私
+    "bst": "<此处替换为实际的加密状态或令牌对>", # 敏感：可能是某种状态令牌或加密信息，结构看起来像某种校验对
+    "__c": "<此处替换为实际的时间戳或计数器>", # 可能是会话创建时间或其他计数器
+    "__g": "-", # 一般设置或占位符，敏感度较低
+    "__a": "<此处替换为实际的Google Analytics追踪ID和数据>", # 敏感：Google Analytics (_ga cookie) 的客户端ID和分析数据，用于用户追踪
+    "__zp_stoken__": "<此处替换为实际的安全会话令牌>", # 敏感：名称强烈暗示为某个特定服务（可能与'zp'相关）的安全会话令牌 (session token)，高度敏感，泄露极易导致账户被盗用
 }
 if "bst" in COOKIES:
     BASE_HEADERS["zp_token"] = COOKIES["bst"]
